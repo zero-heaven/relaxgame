@@ -728,14 +728,14 @@ a {cursor:hand}
 <body class="felt-surface">
 
   <!-- Top Navigation & Header -->
-  <header
+  <header>
     <div class="header-inner">
       <div class="brand-box">
         <div class="brand-icon">🃏</div>
         <div style="min-width:0;">
           <div class="brand-title">
-            <span><A class="qk" href="index.html">🏠Home</a> 卡牌遊戲</span>
-            <span class="brand-badge">PlayCards</span>
+            <span ><A class="qk" href="index.html">🏠Home</a>啤牌遊戲大全</span>
+            <span class="brand-badge">All-in-One Cards</span>
           </div>
           <div class="brand-sub">♠️ ♥️ ♦️ ♣️ 揭牌 • 接龍 • 廿一點 • 沙蟹撲克 • 記憶配對</div>
         </div>
@@ -787,7 +787,7 @@ a {cursor:hand}
           <span>步數: <span id="klondike-moves" class="stat-val">0</span></span>
           <div style="display:inline-flex; align-items:center; gap:4px;">
             <span>時間: <span id="klondike-timer" class="stat-val">00:00</span></span>
-            <button onclick="togglePauseTimer()" id="btn-pause-timer" class="btn" style="padding:2px 6px; font-size:18px;">⏸️</button>
+            <button onclick="togglePauseTimer()" id="btn-pause-timer" class="btn" style="padding:2px 6px; font-size:20px;">⏸️</button>
           </div>
         </div>
       </div>
@@ -829,7 +829,7 @@ a {cursor:hand}
           <span>可移張數: <span id="fc-max-move" class="stat-val">5</span></span>
           <span>步數: <span id="fc-moves" class="stat-val">0</span></span>
           <span>時間: <span id="fc-timer" class="stat-val">00:00</span></span>
-          <button onclick="toggleFcPauseTimer()" id="btn-fc-pause-timer" class="btn" style="padding:2px 6px; font-size:30px;">⏸️</button>
+          <button onclick="toggleFcPauseTimer()" id="btn-fc-pause-timer" class="btn" style="padding:2px 6px; font-size:20px;">⏸️</button>
         </div>
       </div>
 
@@ -871,7 +871,7 @@ a {cursor:hand}
           <span>套數: <span id="spider-completed" class="stat-val">0</span>/8</span>
           <span>發牌: <span id="spider-deals" class="stat-val">5</span></span>
           <span>時間: <span id="spider-timer" class="stat-val">00:00</span></span>
-          <button onclick="toggleSpiderPauseTimer()" id="btn-spider-pause-timer" class="btn" style="padding:2px 6px; font-size:30px;">⏸️</button>
+          <button onclick="toggleSpiderPauseTimer()" id="btn-spider-pause-timer" class="btn" style="padding:2px 6px; font-size:20px;">⏸️</button>
           <button onclick="spiderDealRow()" id="spider-deal-btn" class="btn btn-amber">🃏 發一排</button>
         </div>
       </div>
@@ -968,12 +968,12 @@ a {cursor:hand}
     <section id="game-memory" class="game-section hidden">
       <div class="toolbar">
         <div class="toolbar-group">
-          <button onclick="memoryNewGame()" class="btn btn-emerald">🔄 重啟</button>
-          <button onclick="memoryQuitGame()" class="btn btn-rose">🔚 終止</button>
+          <button onclick="memoryNewGame()" class="btn btn-emerald">🔄 重新開始</button>
+          <button onclick="memoryQuitGame()" class="btn btn-rose">🛑 終止 Quit</button>
           <select id="memory-difficulty" onchange="memoryNewGame()" class="select-dark">
-            <option value="12">12 張</option>
-            <option value="16" selected>16 張</option>
-            <option value="24">24 張</option>
+            <option value="12">初級 (12 張)</option>
+            <option value="16" selected>中級 (16 張)</option>
+            <option value="24">高級 (24 張)</option>
           </select>
         </div>
         <div class="stats-group">
@@ -981,7 +981,7 @@ a {cursor:hand}
           <span>翻牌: <span id="mem-flips" class="stat-val">0</span></span>
           <div style="display:inline-flex; align-items:center; gap:4px;">
             <span>時間: <span id="mem-timer" class="stat-val">00:00</span></span>
-            <button onclick="toggleMemoryPauseTimer()" id="btn-mem-pause-timer" class="btn" style="padding:2px 6px; font-size:30px;">⏸️</button>
+            <button onclick="toggleMemoryPauseTimer()" id="btn-mem-pause-timer" class="btn" style="padding:2px 6px; font-size:14px;">⏸️</button>
           </div>
         </div>
       </div>
