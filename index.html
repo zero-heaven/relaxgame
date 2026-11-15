@@ -9,6 +9,10 @@
   <title>CSS 霓虹發光特效全套組</title>
 <style>
   /* 基礎深色背景設定 */
+  :root{
+    --glow-font-size: 25px;
+  }
+
   body {
     background-color: #090a0f;
     color: #fff;
@@ -52,7 +56,7 @@
      2. 動畫節奏 1：柔和呼吸發光 (Breathing)
      ========================================= */
   .text-glow-pulse {
-    font-size: 40px;
+    font-size: var(--glow-font-size);
     font-weight: bold;
     color: var(--glow-core);
     animation: pulseGlow 1.5s ease-in-out infinite alternate;
@@ -71,7 +75,7 @@
      3. 動畫節奏 2：霓虹燈管閃爍感 (Flicker)
      ========================================= */
   .text-glow-flicker {
-    font-size: 40px;
+    font-size: var(--glow-font-size);
     font-weight: bold;
     color: var(--glow-core);
     text-shadow: 0 0 5px var(--glow-core), 0 0 15px var(--glow-bright), 0 0 30px var(--glow-bright);
@@ -135,6 +139,12 @@
     filter: drop-shadow(0 0 8px var(--glow-bright)) drop-shadow(0 0 16px var(--glow-main));
   }
 
+  @media (min-width: 640px) {
+    :root{
+      --glow-font-size: 40px;
+    }
+  }
+
 /* Targets all links inside the div */
 .link-box a {
   text-decoration: none; /* No underline by default */
@@ -161,8 +171,6 @@ a, a:hover, a:active{text-decoration: none;}
     <p>(接龍 Klondike, 新接龍 FreeCell, <br>蜘蛛紙牌 Spider, 廿一點 Blackjack, <br>傑克高手 Video Poker, 記憶翩牌 Memory)<p>
     <!-- 示範 SVG 圖示套用 drop-shadow 輪廓發光 -->
   </div>
-
-<HR size=2 width=60% noshade color=white>
 
 <a href="calendarHK(ColorMap).html" target="new" class="neon-btn neon-pink">香港萬年曆及農曆節日查詢</a><p>
 
