@@ -1,0 +1,131 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+ <head>
+  <title>Rabbit Lyrics Player with Multi Lyrics</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <META HTTP-EQUIV="Pragma" CONTENT="no_cache">
+  <meta name="Description" content="">
+  <meta name="Author" content="Kwai-Chuen HO">
+  <link href="" rel="stylesheet" type="text/css">
+<style>
+div.example {
+  background-color: ;
+  padding: 20px;
+}
+
+@media screen and (min-width: 601px) {/* 大於/等於>= */
+  div.example {
+    font-size: 200%;
+  }
+}
+
+@media screen and (max-width: 600px) {/* 少於/等於 <=*/
+  div.example {
+    font-size: 100%;
+  }
+}
+</style>
+  <style type="text/css">
+<!--
+.qk:link {color: #FCFBEE;text-decoration: none;font-size:}/*Milk,RGB(252,251,238)*/
+.qk:hover {color: #FCFBEE; text-decoration: none;font-size:}
+.qk:visited {color: #FCFBEE; text-decoration: none;font-size:}/*Ivory**/
+za:link {color: #6600FF;text-decoration: none}/*Purple,RGB(102,0,255)*/
+a:hover, a:active {background: red; color: #FCFBEE; text-decoration: none;font-size: 150%;}/*RGB(204,51,255),pink-purple*/
+za:visited (color: #330000;text-decoration: none)/*Brown,RGB(51,0,0)*/
+a {cursor:hand}
+
+body {
+      background-color: #000000;color:#ffffff;
+}
+.glow {
+  font-size: 40px;
+  color: #fff;
+  text-align: center;
+  animation: glow 1s ease-in-out infinite alternate;
+}
+
+@-webkit-keyframes glow {
+  from {
+    text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #e60073, 0 0 200px #e60073, 0 0 250px #e60073, 0 0 30px #e60073, 0 0 35px #e60073;
+  }
+  
+  to {
+    text-shadow: 0 0 10px #fff, 0 0 15px #ff4da6, 0 0 20px #ff4da6, 0 0 25px #ff4da6, 0 0 30px #ff4da6, 0 0 35px #ff4da6, 0 0 40px #ff4da6;
+  }
+}
+.cs1 {color: #FF6347;text-decoration: none;font-size:;}/* 番茄紅Tomato */
+.cs2 {color: #FFA500;text-decoration: none;font-size:}/* 橙Orange */
+.cs3 {color: #1e90ff;text-decoration: none;font-size:}/* 道奇藍DodgerBlue */
+.cs4 {color: #FF0066;text-decoration: none;font-size:}/* 霓虹粉色Neon Pink*/
+.cs5 {color: #3cb371;text-decoration: none;font-size:150%}/* 中海綠色MediumSeaGreen */
+.cs6 {color: #b3d4fc;text-decoration: none;font-size:}/* 哥倫比亞藍Columbia Blue */
+.cs7 {color: #ffff00;text-decoration: none;font-size:}/* 黃Yellow */
+.cs8 {color: #6a5acd;text-decoration: none;font-size:}/* 石板藍SlateBlue */
+.cs9 {color: #7F00FF;text-decoration: none;font-size:}/* 紫色Violet */
+.cs10 {color: ##ccffff;text-decoration: none;font-size:}/* 淺天空藍lightSkyBlue */
+.cs11 {color: #dce6da;text-decoration: none;font-size:}/* 淺灰檸檬綠 */
+.cs12 {color: #808080;text-decoration: none;font-size:}/* 灰 Gray */
+.cs13 {color: #D3D3D3;text-decoration: none;font-size:}/* 淺灰LightGray */
+.cs14 {color: #e60073;text-decoration: none;font-size:150%}/* 你的粉紅Pinking Of You */
+.cs15 {color: #E67300;text-decoration: none;font-size:150%}/* 芒果探戈Mango Tango */
+.cs16 {color: #e40078;text-decoration: none;font-size:150%}/* 紅紫色Red-purple */
+.cs17 {color: #c71585;text-decoration: none;font-size:150%}/* 中紫紅Medium Violet Red */
+.cs18 {color: #ff1f8f;text-decoration: none;font-size:150%}/* 深粉紅色*Deep Pink* */
+.cs19 {color: #FF8F1F;text-decoration: none;font-size:150%}/* 紅蘿蔔橙Carrot Orange */
+-->
+</style>
+<style type="text/css">
+@import url(https://fonts.googleapis.com/earlyaccess/cwtexkai.css);
+@import url(https://fonts.googleapis.com/earlyaccess/cwtexfangsong.css);
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100;300;400;500;700&display=swap');
+#fangsong {
+	font-family: 'cwTeXFangSong', 'Shadows Into Light';
+	font-size: 30px;
+}
+#kai {
+	font-family: 'cwTeXKai', serif;
+	color: #3300ff;/*Purple*/
+	font-size: ;
+}
+#hei {
+	font-family: 'Noto Sans TC', 'Shadows Into Light';
+	font-size: ;
+	color: #33ff00;/*Green*/
+	text-decoration: none;
+}
+</style>
+ </head>
+
+<body>
+<center>
+<div class="example"><!-- div sample @media begin -->
+
+<div class="glow" >♥ Playcard Game ♥</div><p>
+ <A class="cs2" href="playcards2c.html" target="_self" >
+playcards</a><p>
+</div>
+
+<div class="glow" >♠ mahjong solitaire Game ♠</div><p>
+<A class="cs5" href="mahjong-solitaire-music.html" target="_self" >
+mahjong solitaire</a><p>
+
+<HR size=2 width=60% noshade color=white>
+ &nbsp;<p>
+ &nbsp;<p>
+ &nbsp;<p>
+ &nbsp;<p>
+
+<A  class="qk" HREF="calendarHK(ColorMap).html" target="new"> 香港萬年曆及農曆節日查詢 </A>&nbsp;&nbsp;|&nbsp;&nbsp;
+ &nbsp;<p>
+ &nbsp;<p>
+ &nbsp;<p>
+ &nbsp;<p>
+</div><!-- div sample @media end -->
+
+<script type="text/javascript" src="//counter.websiteout.net/js/7/6/111/1"></script><!-- webcounter  -->
+  </center>
+ </body>
+</html>

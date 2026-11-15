@@ -1,0 +1,2903 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>多功能啤牌遊戲大全 All-in-One Card Games</title>
+  <style>
+    :root {
+      --felt-dark: #0f1f1c;
+      --felt-green: #113f36;
+      --card-w: 72px;
+      --card-h: 100px;
+      --card-radius: 8px;
+      --col-gap: 8px;
+      --stack-offset-down: 12px;
+      --stack-offset-up: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      max-height: 100vh;
+      max-height: 100dvh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+      background: radial-gradient(circle at 50% 25%, #193832 0%, #0d1b18 65%, #070f0d 100%);
+      color: #f1f5f9;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Felt table texture overlay */
+    .felt-surface {
+      background-image:
+        radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 0),
+        radial-gradient(rgba(0, 0, 0, 0.25) 1px, transparent 0);
+      background-size: 16px 16px;
+      background-position: 0 0, 8px 8px;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Header & Navigation */
+    header {
+      flex-shrink: 0;
+      z-index: 40;
+      background: rgba(2, 6, 23, 0.94);
+      border-bottom: 1px solid rgba(6, 95, 70, 0.6);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+    }
+
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #10b981, #0f766e);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(110, 231, 183, 0.35);
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.2);
+      color: #fcd34d;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      color: rgba(110, 231, 183, 0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .global-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .bankroll-pill {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      padding: 4px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #fcd34d;
+    }
+
+    /* Buttons & Selects */
+    button, select {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: transform 0.1s ease, background-color 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:active {
+      transform: scale(0.96);
+    }
+
+    .btn {
+      padding: 5px 10px;
+      border-radius: 9px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #f8fafc;
+      background: #1e293b;
+      border: 1px solid #334155;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: #334155; }
+    .btn-emerald { background: #059669; border-color: #10b981; color: #fff; }
+    .btn-emerald:hover { background: #10b981; }
+    .btn-amber { background: #f59e0b; border-color: #fbbf24; color: #020617; font-weight: 800; }
+    .btn-amber:hover { background: #fbbf24; }
+    .btn-sky { background: #0369a1; border-color: #0ea5e9; color: #fff; }
+    .btn-sky:hover { background: #0284c7; }
+    .btn-rose { background: #e11d48; border-color: #fb7185; color: #fff; }
+    .btn-rose:hover { background: #f43f5e; }
+    .btn-purple { background: #7c3aed; border-color: #a78bfa; color: #fff; }
+    .btn-purple:hover { background: #8b5cf6; }
+
+    .select-dark {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #f1f5f9;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 9px;
+      padding: 4px 8px;
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 8px 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+
+    .game-tab {
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(30, 41, 59, 0.85);
+      color: #e2e8f0;
+      border: 1px solid rgba(71, 85, 105, 0.4);
+    }
+
+    .game-tab:hover { background: #334155; }
+    .game-tab.active {
+      background: #f59e0b;
+      color: #020617;
+      border-color: #fcd34d;
+      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+    }
+
+    /* Main Stage */
+    #game-stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      max-width: 1280px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .game-section {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .toolbar {
+      flex-shrink: 0;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(6, 95, 70, 0.65);
+      border-radius: 12px;
+      padding: 5px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .toolbar-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .stats-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #a7f3d0;
+    }
+
+    .stat-val { color: #fcd34d; }
+
+    /* Playing Card Styling — Strict Overflow Guard */
+    .playing-card {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: var(--card-radius);
+      background: linear-gradient(145deg, #ffffff 0%, #f8fafc 85%, #e2e8f0 100%);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(148, 163, 184, 0.55);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: max(2px, calc(var(--card-w) * 0.05));
+      transition: transform 0.14s ease, box-shadow 0.14s ease;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .playing-card.red-card { color: #dc2626; }
+    .playing-card.black-card { color: #0f172a; }
+
+    .playing-card.selected {
+      transform: translateY(-6px);
+      box-shadow: 0 0 0 2.5px #fbbf24, 0 8px 18px rgba(245, 158, 11, 0.55);
+      z-index: 40 !important;
+    }
+
+    .card-corner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      line-height: 1;
+      flex-shrink: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .card-corner-bottom {
+      transform: rotate(180deg);
+    }
+
+    .card-rank {
+      font-weight: 900;
+      font-size: clamp(8px, calc(var(--card-w) * 0.21), 16px);
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .card-suit-mini {
+      font-size: clamp(7px, calc(var(--card-w) * 0.18), 14px);
+      line-height: 1;
+    }
+
+    .card-center {
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      pointer-events: none;
+      line-height: 1;
+    }
+
+    .card-center-pip {
+      font-size: clamp(11px, calc(var(--card-w) * 0.36), 28px);
+      line-height: 1;
+    }
+
+    .card-center-court {
+      font-size: clamp(10px, calc(var(--card-w) * 0.33), 24px);
+      line-height: 1;
+    }
+
+    .card-center-court-suit {
+      font-size: clamp(6px, calc(var(--card-w) * 0.15), 11px);
+      line-height: 1;
+      margin-top: -1px;
+    }
+
+    /* Card Back */
+    .card-back {
+      background:
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0px, rgba(255, 255, 255, 0.08) 3px, transparent 3px, transparent 8px),
+        linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #0f172a 100%);
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .card-back::after {
+      content: "🃏";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: clamp(13px, calc(var(--card-w) * 0.32), 26px);
+      opacity: 0.9;
+    }
+
+    .stock-badge {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      font-size: 9px;
+      font-weight: 800;
+      background: rgba(2, 6, 23, 0.85);
+      color: #fff;
+      padding: 1px 4px;
+      border-radius: 4px;
+      z-index: 5;
+    }
+
+    /* Waste Pile Clean Fanning Container */
+    .waste-stack-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-width: var(--card-w);
+      height: var(--card-h);
+    }
+
+    .waste-card-pos {
+      position: absolute;
+      top: 0;
+      transition: transform 0.12s ease;
+    }
+
+    /* Pause Overlay */
+    .pause-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.86);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #fcd34d;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    /* Card Slot Placeholder */
+    .card-slot {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: var(--card-radius);
+      border: 2px dashed rgba(255, 255, 255, 0.24);
+      background: rgba(0, 0, 0, 0.24);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      flex-shrink: 0;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* Grids for Solitaire Games */
+    .top-row-flex {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .slot-cluster {
+      display: flex;
+      align-items: center;
+      gap: var(--col-gap);
+    }
+
+    .grid-7 {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: var(--col-gap);
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .grid-8-top {
+      flex-shrink: 0;
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: var(--col-gap);
+      justify-items: center;
+    }
+
+    .grid-8 {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: var(--col-gap);
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .grid-10 {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      gap: var(--col-gap);
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .tableau-col {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+    }
+
+    /* Casino & Table Arenas */
+    .casino-arena {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      background: rgba(6, 78, 59, 0.35);
+      border: 2px solid rgba(16, 185, 129, 0.35);
+      border-radius: 16px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hand-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .hand-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #6ee7b7;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .score-pill {
+      padding: 1px 8px;
+      border-radius: 999px;
+      background: #0f172a;
+      color: #fcd34d;
+      border: 1px solid #334155;
+    }
+
+    .cards-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--col-gap);
+    }
+
+    .status-banner {
+      padding: 6px 14px;
+      border-radius: 12px;
+      background: rgba(2, 6, 23, 0.88);
+      border: 1px solid rgba(245, 158, 11, 0.45);
+      color: #fde68a;
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .chip-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2px dashed #ffffff;
+      font-weight: 900;
+      font-size: 11px;
+      color: #fff;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+    }
+    .chip-10 { background: #2563eb; }
+    .chip-25 { background: #059669; }
+    .chip-50 { background: #dc2626; }
+    .chip-100 { background: #f59e0b; color: #020617; border-color: #020617; }
+
+    /* Video Poker Paytable & Hold Badge */
+    .vp-paytable {
+      flex-shrink: 0;
+      background: rgba(2, 6, 23, 0.92);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      border-radius: 12px;
+      padding: 5px;
+      display: grid;
+      grid-template-columns: repeat(9, minmax(0, 1fr));
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .vp-pay-cell {
+      padding: 3px 2px;
+      border-radius: 6px;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .vp-pay-cell.highlight {
+      background: rgba(245, 158, 11, 0.28);
+      border-color: #fbbf24;
+      color: #fef08a;
+    }
+
+    .hold-badge {
+      font-size: 10px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+    }
+
+    .hold-badge.active {
+      background: #f59e0b;
+      color: #020617;
+      border-color: #fef08a;
+    }
+
+    /* Memory Grid */
+    .memory-wrap {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #memory-grid {
+      display: grid;
+      gap: var(--col-gap);
+      justify-items: center;
+      align-items: center;
+    }
+
+    /* Toast Notification */
+    #toast-banner {
+      position: fixed;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      z-index: 60;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #toast-banner.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-box {
+      padding: 8px 16px;
+      border-radius: 14px;
+      background: rgba(2, 6, 23, 0.95);
+      border: 1px solid rgba(251, 191, 36, 0.65);
+      color: #fde68a;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      white-space: nowrap;
+    }
+
+    /* Rules Modal */
+    #rules-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      background: rgba(2, 6, 23, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-card {
+      max-width: 540px;
+      width: 100%;
+      max-height: 82vh;
+      overflow-y: auto;
+      background: #0f172a;
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      border-radius: 16px;
+      padding: 18px;
+      color: #e2e8f0;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-card h3 {
+      font-size: 16px;
+      font-weight: 900;
+      color: #fcd34d;
+      margin-bottom: 10px;
+    }
+
+    .modal-card p, .modal-card li {
+      font-size: 13px;
+      line-height: 1.55;
+      margin-bottom: 6px;
+    }
+
+    .modal-card ul {
+      padding-left: 18px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 640px) {
+      .brand-sub, .brand-badge { display: none; }
+      .vp-paytable { grid-template-columns: repeat(3, minmax(0, 1fr)); font-size: 10px; }
+    }
+  </style>
+</head>
+<body class="felt-surface">
+
+  <!-- Top Navigation & Header -->
+  <header>
+    <div class="header-inner">
+      <div class="brand-box">
+        <div class="brand-icon">🃏</div>
+        <div style="min-width:0;">
+          <div class="brand-title">
+            <span>多功能啤牌遊戲大全</span>
+            <span class="brand-badge">All-in-One Cards</span>
+          </div>
+          <div class="brand-sub">♠️ ♥️ ♦️ ♣️ 揭牌 • 接龍 • 廿一點 • 沙蟹撲克 • 記憶配對</div>
+        </div>
+      </div>
+
+      <div class="global-controls">
+        <div class="bankroll-pill" title="籌碼餘額 / Casino Chips">
+          <span>🪙</span>
+          <span id="global-bankroll">1,000</span>
+        </div>
+        <button id="btn-sound" class="btn" onclick="toggleSound()" title="音效開關">🔊</button>
+        <button class="btn btn-emerald" onclick="openRulesModal()">📖 玩法說明</button>
+      </div>
+    </div>
+
+    <nav class="nav-tabs">
+      <button onclick="switchGame('klondike')" id="tab-klondike" class="game-tab active">🃏 接龍 Klondike</button>
+      <button onclick="switchGame('freecell')" id="tab-freecell" class="game-tab">🏰 新接龍 FreeCell</button>
+      <button onclick="switchGame('spider')" id="tab-spider" class="game-tab">🕷️ 蜘蛛紙牌 Spider</button>
+      <button onclick="switchGame('blackjack')" id="tab-blackjack" class="game-tab">🎲 廿一點 Blackjack</button>
+      <button onclick="switchGame('videopoker')" id="tab-videopoker" class="game-tab">🎰 傑克高手 Video Poker</button>
+      <button onclick="switchGame('memory')" id="tab-memory" class="game-tab">🧠 記憶翻牌 Memory</button>
+    </nav>
+  </header>
+
+  <!-- Toast Banner -->
+  <div id="toast-banner">
+    <div class="toast-box">✨ <span id="toast-text">準備就緒！</span></div>
+  </div>
+
+  <!-- Main Viewport-Locked Game Stage -->
+  <main id="game-stage">
+
+    <!-- ==================== 1. KLONDIKE SOLITAIRE ==================== -->
+    <section id="game-klondike" class="game-section">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button onclick="klondikeNewGame()" class="btn btn-emerald">🔄 新局 New</button>
+          <button onclick="klondikeQuitGame()" class="btn btn-rose">🛑 終止 Quit</button>
+          <select id="klondike-draw-mode" onchange="klondikeNewGame()" class="select-dark">
+            <option value="1">翻 1 張 (Draw 1)</option>
+            <option value="3">翻 3 張 (Draw 3)</option>
+          </select>
+          <button onclick="klondikeUndo()" class="btn">↩️ 復原</button>
+          <button onclick="klondikeHint()" class="btn btn-sky">💡 提示</button>
+          <button id="klondike-auto-btn" onclick="klondikeAutoComplete()" class="btn btn-amber hidden">⚡ 自動收牌</button>
+        </div>
+        <div class="stats-group">
+          <span>步數: <span id="klondike-moves" class="stat-val">0</span></span>
+          <div style="display:inline-flex; align-items:center; gap:4px;">
+            <span>時間: <span id="klondike-timer" class="stat-val">00:00</span></span>
+            <button onclick="togglePauseTimer()" id="btn-pause-timer" class="btn" style="padding:2px 6px; font-size:10px;">⏸️</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:relative; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:6px;">
+        <div id="klondike-pause-overlay" class="pause-overlay hidden">
+          <div style="font-size:28px;">⏸️ 遊戲已暫停</div>
+          <div style="font-size:13px; color:#94a3b8; font-weight:normal;">點擊下方按鈕繼續遊戲</div>
+          <button onclick="togglePauseTimer()" class="btn btn-amber" style="padding:8px 18px; font-size:14px;">▶️ 繼續遊戲 Resume</button>
+        </div>
+
+        <div class="top-row-flex">
+          <div class="slot-cluster">
+            <div id="klondike-stock" onclick="klondikeDrawStock()" class="card-slot" style="cursor:pointer;" title="點擊發牌"></div>
+            <div id="klondike-waste" class="waste-stack-wrap"></div>
+          </div>
+          <div class="slot-cluster">
+            <div id="klondike-f-0" onclick="klondikeClickFoundation(0)" class="card-slot">♠️</div>
+            <div id="klondike-f-1" onclick="klondikeClickFoundation(1)" class="card-slot">♥️</div>
+            <div id="klondike-f-2" onclick="klondikeClickFoundation(2)" class="card-slot">♣️</div>
+            <div id="klondike-f-3" onclick="klondikeClickFoundation(3)" class="card-slot">♦️</div>
+          </div>
+        </div>
+
+        <div id="klondike-tableau" class="grid-7"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 2. FREECELL SOLITAIRE ==================== -->
+    <section id="game-freecell" class="game-section hidden">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button onclick="freecellNewGame()" class="btn btn-emerald">🔄 新局 New</button>
+          <button onclick="freecellQuitGame()" class="btn btn-rose">🛑 終止 Quit</button>
+          <button onclick="freecellUndo()" class="btn">↩️ 復原 Undo</button>
+          <button onclick="freecellAutoMove()" class="btn btn-amber">⚡ 自動上牌 Auto</button>
+        </div>
+        <div class="stats-group">
+          <span>可移張數: <span id="fc-max-move" class="stat-val">5</span></span>
+          <span>步數: <span id="fc-moves" class="stat-val">0</span></span>
+          <span>時間: <span id="fc-timer" class="stat-val">00:00</span></span>
+          <button onclick="toggleFcPauseTimer()" id="btn-fc-pause-timer" class="btn" style="padding:2px 6px; font-size:10px;">⏸️</button>
+        </div>
+      </div>
+
+      <div style="position:relative; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:6px;">
+        <div id="fc-pause-overlay" class="pause-overlay hidden">
+          <div style="font-size:28px;">⏸️ 新接龍遊戲已暫停</div>
+          <button onclick="toggleFcPauseTimer()" class="btn btn-amber" style="padding:8px 18px; font-size:14px;">▶️ 繼續遊戲 Resume</button>
+        </div>
+
+        <div class="grid-8-top">
+          <div id="fc-cell-0" onclick="fcClickCell(0)" class="card-slot" style="font-size:10px;">FREE</div>
+          <div id="fc-cell-1" onclick="fcClickCell(1)" class="card-slot" style="font-size:10px;">FREE</div>
+          <div id="fc-cell-2" onclick="fcClickCell(2)" class="card-slot" style="font-size:10px;">FREE</div>
+          <div id="fc-cell-3" onclick="fcClickCell(3)" class="card-slot" style="font-size:10px;">FREE</div>
+          <div id="fc-f-0" onclick="fcClickFoundation(0)" class="card-slot">♠️</div>
+          <div id="fc-f-1" onclick="fcClickFoundation(1)" class="card-slot">♥️</div>
+          <div id="fc-f-2" onclick="fcClickFoundation(2)" class="card-slot">♣️</div>
+          <div id="fc-f-3" onclick="fcClickFoundation(3)" class="card-slot">♦️</div>
+        </div>
+
+        <div id="fc-tableau" class="grid-8"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 3. SPIDER SOLITAIRE ==================== -->
+    <section id="game-spider" class="game-section hidden">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button onclick="spiderNewGame()" class="btn btn-emerald">🔄 新局 New</button>
+          <button onclick="spiderQuitGame()" class="btn btn-rose">🛑 終止 Quit</button>
+          <select id="spider-suits-mode" onchange="spiderNewGame()" class="select-dark">
+            <option value="1">單花色 1-Suit (♠️)</option>
+            <option value="2">雙花色 2-Suit (♠️♥️)</option>
+            <option value="4">四花色 4-Suit (♠️♥️♣️♦️)</option>
+          </select>
+          <button onclick="spiderUndo()" class="btn">↩️ 復原</button>
+        </div>
+        <div class="stats-group">
+          <span>套數: <span id="spider-completed" class="stat-val">0</span>/8</span>
+          <span>發牌: <span id="spider-deals" class="stat-val">5</span></span>
+          <span>時間: <span id="spider-timer" class="stat-val">00:00</span></span>
+          <button onclick="toggleSpiderPauseTimer()" id="btn-spider-pause-timer" class="btn" style="padding:2px 6px; font-size:10px;">⏸️</button>
+          <button onclick="spiderDealRow()" id="spider-deal-btn" class="btn btn-amber">🃏 發一排</button>
+        </div>
+      </div>
+
+      <div style="position:relative; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:6px;">
+        <div id="spider-pause-overlay" class="pause-overlay hidden">
+          <div style="font-size:28px;">⏸️ 蜘蛛紙牌遊戲已暫停</div>
+          <button onclick="toggleSpiderPauseTimer()" class="btn btn-amber" style="padding:8px 18px; font-size:14px;">▶️ 繼續遊戲 Resume</button>
+        </div>
+
+        <div id="spider-tableau" class="grid-10"></div>
+      </div>
+    </section>
+
+    <!-- ==================== 4. BLACKJACK 21 ==================== -->
+    <section id="game-blackjack" class="game-section hidden">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <span style="font-size:13px; font-weight:900; color:#fcd34d;">🎲 廿一點 Blackjack 21</span>
+        </div>
+        <div class="stats-group">
+          <span>下注: <span id="bj-current-bet" class="stat-val">0</span> 🪙</span>
+          <button id="bj-btn-free-chips" onclick="resetBankrollIfBroke()" class="btn">+1500 籌碼</button>
+        </div>
+      </div>
+
+      <div class="casino-arena">
+        <div class="hand-box">
+          <div class="hand-label">
+            <span>🎩 莊家 Dealer</span>
+            <span id="bj-dealer-score" class="score-pill">0</span>
+          </div>
+          <div id="bj-dealer-cards" class="cards-row"></div>
+        </div>
+
+        <div id="bj-status-box" class="status-banner">請選擇籌碼下注並按「發牌 Deal」！</div>
+
+        <div id="bj-player-hands" class="cards-row" style="gap:16px;"></div>
+      </div>
+
+      <div class="toolbar" style="justify-content:center;">
+        <div id="bj-bet-controls" class="toolbar-group">
+          <button onclick="bjAddBet(10)" class="chip-btn chip-10">10</button>
+          <button onclick="bjAddBet(25)" class="chip-btn chip-25">25</button>
+          <button onclick="bjAddBet(50)" class="chip-btn chip-50">50</button>
+          <button onclick="bjAddBet(100)" class="chip-btn chip-100">100</button>
+          <button onclick="bjClearBet()" class="btn">清除</button>
+          <button onclick="bjStartDeal()" id="bj-btn-deal" class="btn btn-amber">🃏 發牌 Deal</button>
+        </div>
+
+        <div id="bj-play-controls" class="toolbar-group hidden">
+          <button onclick="bjHit()" class="btn btn-emerald">➕ 要牌 Hit</button>
+          <button onclick="bjStand()" class="btn btn-rose">✋ 停牌 Stand</button>
+          <button onclick="bjDouble()" id="bj-btn-double" class="btn btn-amber">⏫ 雙倍 Double</button>
+          <button onclick="bjSplit()" id="bj-btn-split" class="btn btn-purple hidden">✂️ 分牌 Split</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 5. VIDEO POKER ==================== -->
+    <section id="game-videopoker" class="game-section hidden">
+      <div class="vp-paytable">
+        <div id="vp-pay-royal" class="vp-pay-cell">大順 250x</div>
+        <div id="vp-pay-sf" class="vp-pay-cell">同花順 50x</div>
+        <div id="vp-pay-4k" class="vp-pay-cell">四條 25x</div>
+        <div id="vp-pay-fh" class="vp-pay-cell">葫蘆 9x</div>
+        <div id="vp-pay-fl" class="vp-pay-cell">同花 6x</div>
+        <div id="vp-pay-st" class="vp-pay-cell">順子 4x</div>
+        <div id="vp-pay-3k" class="vp-pay-cell">三條 3x</div>
+        <div id="vp-pay-2p" class="vp-pay-cell">兩對 2x</div>
+        <div id="vp-pay-job" class="vp-pay-cell">一對J+ 1x</div>
+      </div>
+
+      <div class="casino-arena" style="justify-content:center; gap:14px;">
+        <div id="vp-result-banner" class="status-banner">🎰 傑克高手 Jacks or Better — 點擊「發牌 DEAL」開始！</div>
+        <div id="vp-cards-row" class="cards-row"></div>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <span style="font-size:12px; font-weight:700;">注碼 Bet:</span>
+          <select id="vp-bet-amount" class="select-dark">
+            <option value="10">10 🪙</option>
+            <option value="25" selected>25 🪙</option>
+            <option value="50">50 🪙</option>
+            <option value="100">100 🪙</option>
+          </select>
+        </div>
+        <button id="vp-action-btn" onclick="vpAction()" class="btn btn-amber">🃏 發牌 DEAL</button>
+      </div>
+    </section>
+
+    <!-- ==================== 6. MEMORY MATCH ==================== -->
+    <section id="game-memory" class="game-section hidden">
+      <div class="toolbar">
+        <div class="toolbar-group">
+          <button onclick="memoryNewGame()" class="btn btn-emerald">🔄 重新開始</button>
+          <button onclick="memoryQuitGame()" class="btn btn-rose">🛑 終止 Quit</button>
+          <select id="memory-difficulty" onchange="memoryNewGame()" class="select-dark">
+            <option value="12">初級 (12 張)</option>
+            <option value="16" selected>中級 (16 張)</option>
+            <option value="24">高級 (24 張)</option>
+          </select>
+        </div>
+        <div class="stats-group">
+          <span>配對: <span id="mem-pairs" class="stat-val">0</span>/<span id="mem-total-pairs">8</span></span>
+          <span>翻牌: <span id="mem-flips" class="stat-val">0</span></span>
+          <div style="display:inline-flex; align-items:center; gap:4px;">
+            <span>時間: <span id="mem-timer" class="stat-val">00:00</span></span>
+            <button onclick="toggleMemoryPauseTimer()" id="btn-mem-pause-timer" class="btn" style="padding:2px 6px; font-size:10px;">⏸️</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:relative; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:6px;">
+        <div id="memory-pause-overlay" class="pause-overlay hidden">
+          <div style="font-size:28px;">⏸️ 記憶翻牌遊戲已暫停</div>
+          <button onclick="toggleMemoryPauseTimer()" class="btn btn-amber" style="padding:8px 18px; font-size:14px;">▶️ 繼續遊戲 Resume</button>
+        </div>
+
+        <div class="memory-wrap">
+          <div id="memory-grid"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Rules Modal -->
+  <div id="rules-modal" class="hidden" onclick="if(event.target===this) closeRulesModal()">
+    <div class="modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0;">📖 多功能啤牌遊戲玩法說明</h3>
+        <button onclick="closeRulesModal()" class="btn btn-rose">✕ 關閉</button>
+      </div>
+      <ul>
+        <li><strong>🃏 接龍 Klondike：</strong>點擊牌疊或牌張選取並移動，紅黑花色交替由大至小（K→A）排列；目標是將四種花色按 A→K 疊入右上角基座（再次點擊已選取的牌可自動送上基座）。點擊「新局」即開始計時。</li>
+        <li><strong>🏰 新接龍 FreeCell：</strong>左上角有 4 個自由中轉格（FREE），可暫存單張牌；一次可移動的連續紅黑交替牌張數量取決於空位數量。點擊「新局」即開始計時。</li>
+        <li><strong>🕷️ 蜘蛛紙牌 Spider：</strong>同花色由 K 排至 A 滿 13 張會自動收走；集滿 8 套即獲勝。所有直行均有牌時可按「發一排」。點擊「新局」即開始計時。</li>
+        <li><strong>🎲 廿一點 Blackjack：</strong>點擊籌碼下注後發牌，目標使點數接近 21 點且不爆牌，並高於莊家。籌碼大於 0 時禁用免費補給。</li>
+        <li><strong>🎰 傑克高手 Video Poker：</strong>發 5 張牌後點擊欲保留（HOLD）的牌，再按「換牌 DRAW」結算牌型賠率。</li>
+        <li><strong>🧠 記憶翻牌 Memory：</strong>翻開兩張相同數字與花色的撲克牌即可配對成功。點擊「重新開始」即開始計時，支援暫停功能。</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       CORE DECK, EMOJI RENDERER, SOUND & STATE UTILITIES
+       ========================================================================= */
+    const SUITS = [
+      { id: 0, name: 'spades', symbol: '♠️', color: 'black' },
+      { id: 1, name: 'hearts', symbol: '♥️', color: 'red' },
+      { id: 2, name: 'clubs', symbol: '♣️', color: 'black' },
+      { id: 3, name: 'diamonds', symbol: '♦️', color: 'red' }
+    ];
+
+    const RANKS = {
+      1: 'A', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7',
+      8: '8', 9: '9', 10: '10', 11: 'J', 12: 'Q', 13: 'K'
+    };
+
+    const COURT_EMOJI = { 11: '💂', 12: '👸', 13: '🤴' };
+
+    let bankroll = 1000;
+    try {
+      const saved = localStorage.getItem('cardhub_bankroll');
+      if (saved !== null && !isNaN(parseInt(saved, 10))) {
+        bankroll = parseInt(saved, 10);
+      }
+    } catch (e) {}
+
+    function updateBankroll(delta = 0) {
+      bankroll = Math.max(0, bankroll + delta);
+      try {
+        localStorage.setItem('cardhub_bankroll', String(bankroll));
+      } catch (e) {}
+      const el = document.getElementById('global-bankroll');
+      if (el) el.textContent = bankroll.toLocaleString();
+
+      const freeChipBtn = document.getElementById('bj-btn-free-chips');
+      if (freeChipBtn) {
+        if (bankroll > 0) {
+          freeChipBtn.disabled = true;
+          freeChipBtn.style.opacity = '0.4';
+          freeChipBtn.style.cursor = 'not-allowed';
+          freeChipBtn.title = '籌碼大於 0 時無法領取免費補給';
+        } else {
+          freeChipBtn.disabled = false;
+          freeChipBtn.style.opacity = '1';
+          freeChipBtn.style.cursor = 'pointer';
+          freeChipBtn.title = '領取 1500 免費籌碼';
+        }
+      }
+    }
+
+    function resetBankrollIfBroke() {
+      if (bankroll > 0) {
+        showToast('⚠️ 您的餘額大於 0，無法領取免費籌碼！');
+        playSound('error');
+        return;
+      }
+      updateBankroll(1500);
+      playSound('win');
+      showToast('🪙 已補充 1500 免費籌碼！');
+    }
+
+    /* Synthesized Web Audio API Sound Effects */
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('btn-sound');
+      if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
+    }
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) return;
+          audioCtx = new Ctx();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'card' || type === 'select') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(type === 'select' ? 520 : 340, now);
+          osc.frequency.exponentialRampToValueAtTime(160, now + 0.06);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+          osc.start(now);
+          osc.stop(now + 0.065);
+        } else if (type === 'win') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.09);
+          osc.frequency.setValueAtTime(783.99, now + 0.18);
+          gain.gain.setValueAtTime(0.11, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        } else if (type === 'error') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(150, now);
+          gain.gain.setValueAtTime(0.07, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+          osc.start(now);
+          osc.stop(now + 0.15);
+        }
+      } catch (e) {}
+    }
+
+    /* Toast Notification */
+    let toastTimeout = null;
+    function showToast(msg) {
+      const banner = document.getElementById('toast-banner');
+      const textEl = document.getElementById('toast-text');
+      if (!banner || !textEl) return;
+      textEl.textContent = msg;
+      banner.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => banner.classList.remove('show'), 2600);
+    }
+
+    function openRulesModal() {
+      document.getElementById('rules-modal')?.classList.remove('hidden');
+    }
+    function closeRulesModal() {
+      document.getElementById('rules-modal')?.classList.add('hidden');
+    }
+
+    /* Decking */
+    function createDeck(suitIds = [0, 1, 2, 3], faceUp = false) {
+      const deck = [];
+      for (const sId of suitIds) {
+        const suit = SUITS[sId];
+        for (let r = 1; r <= 13; r++) {
+          deck.push({
+            suit: sId,
+            symbol: suit.symbol,
+            color: suit.color,
+            rank: r,
+            rankLabel: RANKS[r],
+            faceUp
+          });
+        }
+      }
+      return deck;
+    }
+
+    function shuffle(arr) {
+      const a = arr.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function createCardElement(card, opts = {}) {
+      const el = document.createElement('div');
+      if (!card || !card.faceUp) {
+        el.className = 'playing-card card-back';
+        return el;
+      }
+      el.className = `playing-card ${card.color === 'red' ? 'red-card' : 'black-card'}${opts.selected ? ' selected' : ''}`;
+
+      const centerHTML = COURT_EMOJI[card.rank]
+        ? `<span class="card-center-court">${COURT_EMOJI[card.rank]}</span><span class="card-center-court-suit">${card.symbol}</span>`
+        : `<span class="card-center-pip">${card.rank === 1 ? '🃏' : card.symbol}</span>`;
+
+      el.innerHTML = `
+        <div class="card-corner">
+          <span class="card-rank">${card.rankLabel}</span>
+          <span class="card-suit-mini">${card.symbol}</span>
+        </div>
+        <div class="card-center">${centerHTML}</div>
+        <div class="card-corner card-corner-bottom">
+          <span class="card-rank">${card.rankLabel}</span>
+          <span class="card-suit-mini">${card.symbol}</span>
+        </div>
+      `;
+      return el;
+    }
+
+    function formatTime(sec) {
+      const m = String(Math.floor(sec / 60)).padStart(2, '0');
+      const s = String(sec % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    /* =========================================================================
+       NAVIGATION & DYNAMIC VIEWPORT SCALING
+       ========================================================================= */
+    let currentGame = 'klondike';
+    let layoutMetrics = { cardW: 72, cardH: 100, colGap: 8, offsetDown: 12, offsetUp: 22, memCols: 4 };
+
+    function switchGame(gameId) {
+      currentGame = gameId;
+      document.querySelectorAll('.game-section').forEach(sec => sec.classList.add('hidden'));
+      document.getElementById(`game-${gameId}`)?.classList.remove('hidden');
+
+      document.querySelectorAll('.game-tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(`tab-${gameId}`)?.classList.add('active');
+
+      playSound('select');
+      updateLayoutScale();
+    }
+
+    function updateLayoutScale(skipRender = false) {
+      const stage = document.getElementById('game-stage');
+      if (!stage) return;
+
+      const rect = stage.getBoundingClientRect();
+      const availW = Math.max(280, (rect.width || window.innerWidth) - 16);
+      const availH = Math.max(240, (rect.height || (window.innerHeight - 90)) - 12);
+      const isCompact = availW < 640;
+      const aspect = 1.38;
+
+      let cardW = 72;
+      let cardH = 100;
+      let colGap = isCompact ? 4 : 10;
+      let offsetDown = 12;
+      let offsetUp = 22;
+      let memCols = 4;
+
+      if (currentGame === 'klondike') {
+        const cols = 7;
+        colGap = isCompact ? 4 : 10;
+        const maxWByWidth = Math.floor((availW - colGap * (cols - 1)) / cols);
+        const maxHByHeight = Math.floor((availH - 58) * 0.27);
+        cardW = Math.max(34, Math.min(92, maxWByWidth, Math.floor(maxHByHeight / aspect)));
+        cardH = Math.floor(cardW * aspect);
+
+        const tableauH = Math.max(110, availH - 58 - cardH);
+        let maxSteps = 7;
+        if (typeof kState !== 'undefined' && kState.tableau) {
+          kState.tableau.forEach(col => {
+            if (col.length > 1) {
+              const downs = col.slice(0, -1).filter(c => !c.faceUp).length;
+              const ups = col.slice(0, -1).filter(c => c.faceUp).length;
+              const weighted = downs * 0.55 + ups;
+              if (weighted > maxSteps) maxSteps = weighted;
+            }
+          });
+        }
+        const usableStackH = Math.max(30, tableauH - cardH - 6);
+        offsetUp = Math.max(11, Math.min(28, Math.floor(usableStackH / maxSteps)));
+        offsetDown = Math.max(5, Math.min(14, Math.floor(offsetUp * 0.55)));
+      } else if (currentGame === 'freecell') {
+        const cols = 8;
+        colGap = isCompact ? 3 : 9;
+        const maxWByWidth = Math.floor((availW - colGap * (cols - 1)) / cols);
+        const maxHByHeight = Math.floor((availH - 54) * 0.26);
+        cardW = Math.max(30, Math.min(86, maxWByWidth, Math.floor(maxHByHeight / aspect)));
+        cardH = Math.floor(cardW * aspect);
+
+        const tableauH = Math.max(110, availH - 54 - cardH);
+        let maxCards = 7;
+        if (typeof fcState !== 'undefined' && fcState.tableau) {
+          fcState.tableau.forEach(col => { if (col.length > maxCards) maxCards = col.length; });
+        }
+        const usableStackH = Math.max(30, tableauH - cardH - 6);
+        offsetUp = Math.max(10, Math.min(27, Math.floor(usableStackH / Math.max(1, maxCards - 1))));
+        offsetDown = offsetUp;
+      } else if (currentGame === 'spider') {
+        const cols = 10;
+        colGap = isCompact ? 2 : 7;
+        const maxWByWidth = Math.floor((availW - colGap * (cols - 1)) / cols);
+        const maxHByHeight = Math.floor((availH - 52) * 0.24);
+        cardW = Math.max(25, Math.min(76, maxWByWidth, Math.floor(maxHByHeight / aspect)));
+        cardH = Math.floor(cardW * aspect);
+
+        const tableauH = Math.max(120, availH - 52);
+        let maxSteps = 6;
+        if (typeof spState !== 'undefined' && spState.tableau) {
+          spState.tableau.forEach(col => {
+            if (col.length > 1) {
+              const downs = col.slice(0, -1).filter(c => !c.faceUp).length;
+              const ups = col.slice(0, -1).filter(c => c.faceUp).length;
+              const weighted = downs * 0.5 + ups;
+              if (weighted > maxSteps) maxSteps = weighted;
+            }
+          });
+        }
+        const usableStackH = Math.max(30, tableauH - cardH - 6);
+        offsetUp = Math.max(10, Math.min(25, Math.floor(usableStackH / maxSteps)));
+        offsetDown = Math.max(4, Math.min(12, Math.floor(offsetUp * 0.5)));
+      } else if (currentGame === 'blackjack') {
+        colGap = isCompact ? 6 : 10;
+        const maxHByHeight = Math.floor((availH - 145) * 0.42);
+        const maxWByWidth = Math.floor((availW - 40) / 5.5);
+        cardW = Math.max(46, Math.min(84, maxWByWidth, Math.floor(maxHByHeight / aspect)));
+        cardH = Math.floor(cardW * aspect);
+      } else if (currentGame === 'videopoker') {
+        colGap = isCompact ? 6 : 14;
+        const maxWByWidth = Math.floor((availW - colGap * 4 - 24) / 5);
+        const maxHByHeight = Math.floor((availH - 145) * 0.68);
+        cardW = Math.max(48, Math.min(94, maxWByWidth, Math.floor(maxHByHeight / aspect)));
+        cardH = Math.floor(cardW * aspect);
+      } else if (currentGame === 'memory') {
+        const total = parseInt(document.getElementById('memory-difficulty')?.value || '16', 10);
+        const isLandscape = availW > availH;
+        if (total === 12) memCols = isLandscape ? 4 : 3;
+        else if (total === 16) memCols = 4;
+        else memCols = isLandscape ? 6 : 4;
+        const memRows = Math.ceil(total / memCols);
+
+        colGap = isCompact ? 6 : 12;
+        const boardH = Math.max(140, availH - 48);
+        const maxWByWidth = Math.floor((availW - colGap * (memCols - 1) - 12) / memCols);
+        const maxHByHeight = Math.floor((boardH - colGap * (memRows - 1) - 8) / memRows);
+        cardW = Math.max(36, Math.min(86, maxWByWidth, Math.floor(maxHByHeight / aspect)));
+        cardH = Math.floor(cardW * aspect);
+      }
+
+      layoutMetrics = { cardW, cardH, colGap, offsetDown, offsetUp, memCols };
+
+      const root = document.documentElement;
+      root.style.setProperty('--card-w', `${cardW}px`);
+      root.style.setProperty('--card-h', `${cardH}px`);
+      root.style.setProperty('--card-radius', `${Math.max(5, Math.round(cardW * 0.12))}px`);
+      root.style.setProperty('--col-gap', `${colGap}px`);
+      root.style.setProperty('--stack-offset-down', `${offsetDown}px`);
+      root.style.setProperty('--stack-offset-up', `${offsetUp}px`);
+
+      if (!skipRender) {
+        if (currentGame === 'klondike') klondikeRender(true);
+        else if (currentGame === 'freecell') fcRender(true);
+        else if (currentGame === 'spider') spiderRender(true);
+        else if (currentGame === 'memory') memoryRender(true);
+      }
+    }
+
+    /* =========================================================================
+       1. KLONDIKE SOLITAIRE (With Pause, Quit & Clean Waste Pile)
+       ========================================================================= */
+    let kState = {
+      stock: [],
+      waste: [],
+      foundations: [[], [], [], []],
+      tableau: [[], [], [], [], [], [], []],
+      selected: null,
+      moves: 0,
+      seconds: 0,
+      timerId: null,
+      isPaused: false,
+      history: []
+    };
+
+    function togglePauseTimer() {
+      kState.isPaused = !kState.isPaused;
+      const overlay = document.getElementById('klondike-pause-overlay');
+      const pauseBtn = document.getElementById('btn-pause-timer');
+      if (overlay) overlay.classList.toggle('hidden', !kState.isPaused);
+      if (pauseBtn) pauseBtn.textContent = kState.isPaused ? '▶️' : '⏸️';
+      if (kState.isPaused) {
+        clearInterval(kState.timerId);
+      } else {
+        kState.timerId = setInterval(() => {
+          kState.seconds++;
+          const tEl = document.getElementById('klondike-timer');
+          if (tEl) tEl.textContent = formatTime(kState.seconds);
+        }, 1000);
+      }
+    }
+
+    function klondikeQuitGame() {
+      clearInterval(kState.timerId);
+      kState.isPaused = false;
+      const pauseBtn = document.getElementById('btn-pause-timer');
+      if (pauseBtn) pauseBtn.textContent = '⏸️';
+      document.getElementById('klondike-pause-overlay')?.classList.add('hidden');
+      kState.seconds = 0;
+      kState.moves = 0;
+      kState.stock = [];
+      kState.waste = [];
+      kState.foundations = [[], [], [], []];
+      kState.tableau = [[], [], [], [], [], [], []];
+      kState.selected = null;
+      kState.history = [];
+      const tEl = document.getElementById('klondike-timer');
+      if (tEl) tEl.textContent = '00:00';
+      klondikeRender();
+      showToast('🛑 接龍遊戲已終止');
+    }
+
+    function klondikeSaveHistory() {
+      kState.history.push(JSON.stringify({
+        stock: kState.stock,
+        waste: kState.waste,
+        foundations: kState.foundations,
+        tableau: kState.tableau,
+        moves: kState.moves
+      }));
+      if (kState.history.length > 30) kState.history.shift();
+    }
+
+    function klondikeUndo() {
+      if (kState.history.length === 0) return;
+      const prev = JSON.parse(kState.history.pop());
+      kState.stock = prev.stock;
+      kState.waste = prev.waste;
+      kState.foundations = prev.foundations;
+      kState.tableau = prev.tableau;
+      kState.moves = prev.moves;
+      kState.selected = null;
+      playSound('select');
+      klondikeRender();
+    }
+
+    function klondikeNewGame() {
+      clearInterval(kState.timerId);
+      kState.isPaused = false;
+      const pauseBtn = document.getElementById('btn-pause-timer');
+      if (pauseBtn) pauseBtn.textContent = '⏸️';
+      document.getElementById('klondike-pause-overlay')?.classList.add('hidden');
+
+      const deck = shuffle(createDeck([0, 1, 2, 3], false));
+      kState.tableau = [[], [], [], [], [], [], []];
+      for (let c = 0; c < 7; c++) {
+        for (let r = 0; r <= c; r++) {
+          const card = deck.pop();
+          card.faceUp = (r === c);
+          kState.tableau[c].push(card);
+        }
+      }
+      kState.stock = deck;
+      kState.waste = [];
+      kState.foundations = [[], [], [], []];
+      kState.selected = null;
+      kState.moves = 0;
+      kState.seconds = 0;
+      kState.history = [];
+      document.getElementById('klondike-timer').textContent = '00:00';
+
+      kState.timerId = setInterval(() => {
+        kState.seconds++;
+        const tEl = document.getElementById('klondike-timer');
+        if (tEl) tEl.textContent = formatTime(kState.seconds);
+      }, 1000);
+
+      klondikeRender();
+    }
+
+    function klondikeDrawStock() {
+      klondikeSaveHistory();
+      kState.selected = null;
+      const drawCount = parseInt(document.getElementById('klondike-draw-mode')?.value || '1', 10);
+      if (kState.stock.length > 0) {
+        const n = Math.min(drawCount, kState.stock.length);
+        for (let i = 0; i < n; i++) {
+          const c = kState.stock.pop();
+          c.faceUp = true;
+          kState.waste.push(c);
+        }
+        kState.moves++;
+        playSound('card');
+      } else if (kState.waste.length > 0) {
+        while (kState.waste.length > 0) {
+          const c = kState.waste.pop();
+          c.faceUp = false;
+          kState.stock.push(c);
+        }
+        kState.moves++;
+        playSound('card');
+      }
+      klondikeRender();
+    }
+
+    function klondikeCanMoveToFoundation(card, fIdx) {
+      if (card.suit !== fIdx) return false;
+      const pile = kState.foundations[fIdx];
+      return pile.length === 0 ? card.rank === 1 : card.rank === pile[pile.length - 1].rank + 1;
+    }
+
+    function klondikeCanMoveToTableau(card, colIdx) {
+      const col = kState.tableau[colIdx];
+      if (col.length === 0) return card.rank === 13;
+      const top = col[col.length - 1];
+      return top.faceUp && top.color !== card.color && card.rank === top.rank - 1;
+    }
+
+    function klondikeTryAutoFoundation(source, col, idx) {
+      let card = null;
+      if (source === 'waste' && kState.waste.length > 0) {
+        card = kState.waste[kState.waste.length - 1];
+      } else if (source === 'tableau' && idx === kState.tableau[col].length - 1) {
+        card = kState.tableau[col][idx];
+      }
+      if (!card) return false;
+      if (klondikeCanMoveToFoundation(card, card.suit)) {
+        klondikeSaveHistory();
+        if (source === 'waste') kState.waste.pop();
+        else {
+          kState.tableau[col].pop();
+          if (kState.tableau[col].length > 0) kState.tableau[col][kState.tableau[col].length - 1].faceUp = true;
+        }
+        kState.foundations[card.suit].push(card);
+        kState.selected = null;
+        kState.moves++;
+        playSound('card');
+        klondikeRender();
+        klondikeCheckWin();
+        return true;
+      }
+      return false;
+    }
+
+    function klondikeClickFoundation(fIdx) {
+      if (!kState.selected) {
+        if (kState.foundations[fIdx].length > 0) {
+          kState.selected = { source: 'foundation', col: fIdx, index: kState.foundations[fIdx].length - 1 };
+          playSound('select');
+          klondikeRender();
+        }
+        return;
+      }
+      const sel = kState.selected;
+      let movingCard = null;
+      if (sel.source === 'waste') movingCard = kState.waste[kState.waste.length - 1];
+      else if (sel.source === 'tableau' && sel.index === kState.tableau[sel.col].length - 1) {
+        movingCard = kState.tableau[sel.col][sel.index];
+      }
+
+      if (movingCard && klondikeCanMoveToFoundation(movingCard, fIdx)) {
+        klondikeSaveHistory();
+        if (sel.source === 'waste') kState.waste.pop();
+        else {
+          kState.tableau[sel.col].pop();
+          if (kState.tableau[sel.col].length > 0) kState.tableau[sel.col][kState.tableau[sel.col].length - 1].faceUp = true;
+        }
+        kState.foundations[fIdx].push(movingCard);
+        kState.selected = null;
+        kState.moves++;
+        playSound('card');
+        klondikeRender();
+        klondikeCheckWin();
+      } else {
+        kState.selected = null;
+        klondikeRender();
+      }
+    }
+
+    function klondikeClickTableau(colIdx, cardIdx) {
+      const targetCol = kState.tableau[colIdx];
+      if (!kState.selected) {
+        if (targetCol.length === 0) return;
+        const card = targetCol[cardIdx];
+        if (!card.faceUp) return;
+        kState.selected = { source: 'tableau', col: colIdx, index: cardIdx };
+        playSound('select');
+        klondikeRender();
+        return;
+      }
+
+      const sel = kState.selected;
+      if (sel.source === 'tableau' && sel.col === colIdx && sel.index === cardIdx) {
+        if (!klondikeTryAutoFoundation('tableau', colIdx, cardIdx)) {
+          kState.selected = null;
+          klondikeRender();
+        }
+        return;
+      }
+
+      let movingCards = [];
+      if (sel.source === 'waste') movingCards = [kState.waste[kState.waste.length - 1]];
+      else if (sel.source === 'foundation') movingCards = [kState.foundations[sel.col][kState.foundations[sel.col].length - 1]];
+      else if (sel.source === 'tableau') movingCards = kState.tableau[sel.col].slice(sel.index);
+
+      if (movingCards.length > 0 && klondikeCanMoveToTableau(movingCards[0], colIdx)) {
+        klondikeSaveHistory();
+        if (sel.source === 'waste') kState.waste.pop();
+        else if (sel.source === 'foundation') kState.foundations[sel.col].pop();
+        else {
+          kState.tableau[sel.col].splice(sel.index);
+          if (kState.tableau[sel.col].length > 0) kState.tableau[sel.col][kState.tableau[sel.col].length - 1].faceUp = true;
+        }
+        kState.tableau[colIdx].push(...movingCards);
+        kState.selected = null;
+        kState.moves++;
+        playSound('card');
+        klondikeRender();
+      } else {
+        if (targetCol.length > 0 && targetCol[cardIdx] && targetCol[cardIdx].faceUp) {
+          kState.selected = { source: 'tableau', col: colIdx, index: cardIdx };
+          playSound('select');
+        } else {
+          kState.selected = null;
+        }
+        klondikeRender();
+      }
+    }
+
+    function klondikeHint() {
+      if (kState.waste.length > 0) {
+        const w = kState.waste[kState.waste.length - 1];
+        if (klondikeCanMoveToFoundation(w, w.suit)) { showToast(`💡 提示：廢牌區 ${w.rankLabel}${w.symbol} 可移至基座！`); return; }
+        for (let c = 0; c < 7; c++) {
+          if (klondikeCanMoveToTableau(w, c)) { showToast(`💡 提示：廢牌區 ${w.rankLabel}${w.symbol} 可移至第 ${c + 1} 行！`); return; }
+        }
+      }
+      for (let c = 0; c < 7; c++) {
+        const col = kState.tableau[c];
+        if (col.length === 0) continue;
+        const top = col[col.length - 1];
+        if (klondikeCanMoveToFoundation(top, top.suit)) { showToast(`💡 提示：第 ${c + 1} 行 ${top.rankLabel}${top.symbol} 可上基座！`); return; }
+        const firstUp = col.findIndex(x => x.faceUp);
+        if (firstUp >= 0) {
+          const lead = col[firstUp];
+          for (let t = 0; t < 7; t++) {
+            if (t !== c && klondikeCanMoveToTableau(lead, t) && !(firstUp === 0 && lead.rank === 13)) {
+              showToast(`💡 提示：第 ${c + 1} 行 ${lead.rankLabel}${lead.symbol} 可移至第 ${t + 1} 行！`);
+              return;
+            }
+          }
+        }
+      }
+      showToast('💡 提示：點擊左上角牌堆發新牌！');
+    }
+
+    function klondikeCheckAutoAvailable() {
+      return kState.stock.length === 0 && kState.waste.length === 0 &&
+        kState.tableau.every(col => col.every(c => c.faceUp));
+    }
+
+    function klondikeAutoComplete() {
+      const step = () => {
+        let moved = false;
+        for (let c = 0; c < 7; c++) {
+          const col = kState.tableau[c];
+          if (col.length > 0) {
+            const top = col[col.length - 1];
+            if (klondikeCanMoveToFoundation(top, top.suit)) {
+              kState.foundations[top.suit].push(col.pop());
+              kState.moves++;
+              moved = true;
+              playSound('card');
+              break;
+            }
+          }
+        }
+        klondikeRender();
+        if (moved) setTimeout(step, 70);
+        else klondikeCheckWin();
+      };
+      step();
+    }
+
+    function klondikeCheckWin() {
+      const total = kState.foundations.reduce((acc, f) => acc + f.length, 0);
+      if (total === 52) {
+        clearInterval(kState.timerId);
+        playSound('win');
+        updateBankroll(150);
+        showToast('🎉 恭喜過關！接龍完成 +150 🪙 獎勵！');
+      }
+    }
+
+    function klondikeRender(skipScale = false) {
+      if (!skipScale && currentGame === 'klondike') updateLayoutScale(true);
+      document.getElementById('klondike-moves').textContent = kState.moves;
+      document.getElementById('klondike-auto-btn').classList.toggle('hidden', !klondikeCheckAutoAvailable());
+
+      const stockEl = document.getElementById('klondike-stock');
+      stockEl.innerHTML = '';
+      if (kState.stock.length > 0) {
+        const back = createCardElement({ faceUp: false });
+        back.innerHTML = `<span class="stock-badge">${kState.stock.length}</span>`;
+        stockEl.appendChild(back);
+      } else {
+        stockEl.innerHTML = '<span style="font-size:18px;">🔄</span>';
+      }
+
+      const wasteEl = document.getElementById('klondike-waste');
+      wasteEl.innerHTML = '';
+      const visibleWaste = kState.waste.slice(-3);
+      const stepOffset = Math.min(24, Math.max(10, Math.round(layoutMetrics.cardW * 0.25)));
+
+      visibleWaste.forEach((card, i) => {
+        const isTop = (i === visibleWaste.length - 1);
+        const isSelected = isTop && kState.selected?.source === 'waste';
+        const cEl = createCardElement(card, { selected: isSelected });
+        cEl.className += ' waste-card-pos';
+        cEl.style.left = `${i * stepOffset}px`;
+        cEl.style.zIndex = i + 1;
+
+        if (isTop) {
+          cEl.onclick = () => {
+            if (kState.selected?.source === 'waste') {
+              if (!klondikeTryAutoFoundation('waste', 0, 0)) {
+                kState.selected = null;
+                klondikeRender();
+              }
+            } else {
+              kState.selected = { source: 'waste', col: 0, index: kState.waste.length - 1 };
+              playSound('select');
+              klondikeRender();
+            }
+          };
+        } else {
+          cEl.style.pointerEvents = 'none';
+          cEl.style.opacity = '0.85';
+        }
+        wasteEl.appendChild(cEl);
+      });
+
+      for (let f = 0; f < 4; f++) {
+        const fEl = document.getElementById(`klondike-f-${f}`);
+        fEl.innerHTML = '';
+        const pile = kState.foundations[f];
+        if (pile.length === 0) {
+          fEl.innerHTML = `<span>${SUITS[f].symbol}</span>`;
+        } else {
+          const top = pile[pile.length - 1];
+          const isSel = kState.selected?.source === 'foundation' && kState.selected.col === f;
+          fEl.appendChild(createCardElement(top, { selected: isSel }));
+        }
+      }
+
+      const tabEl = document.getElementById('klondike-tableau');
+      tabEl.innerHTML = '';
+      const offsetDown = layoutMetrics.offsetDown;
+      const offsetUp = layoutMetrics.offsetUp;
+
+      for (let c = 0; c < 7; c++) {
+        const colWrap = document.createElement('div');
+        colWrap.className = 'tableau-col';
+        const col = kState.tableau[c];
+
+        if (col.length === 0) {
+          const slot = document.createElement('div');
+          slot.className = 'card-slot';
+          slot.textContent = 'K';
+          slot.onclick = () => klondikeClickTableau(c, 0);
+          colWrap.appendChild(slot);
+        } else {
+          let currentTop = 0;
+          col.forEach((card, idx) => {
+            const isSel = kState.selected?.source === 'tableau' && kState.selected.col === c && idx >= kState.selected.index;
+            const cEl = createCardElement(card, { selected: isSel });
+            cEl.style.position = 'absolute';
+            cEl.style.top = `${currentTop}px`;
+            cEl.style.zIndex = idx + 1;
+            cEl.onclick = (e) => {
+              e.stopPropagation();
+              klondikeClickTableau(c, idx);
+            };
+            colWrap.appendChild(cEl);
+            currentTop += card.faceUp ? offsetUp : offsetDown;
+          });
+        }
+        tabEl.appendChild(colWrap);
+      }
+    }
+
+    /* =========================================================================
+       2. FREECELL SOLITAIRE (With Timer, Pause & Quit)
+       ========================================================================= */
+    let fcState = {
+      cells: [null, null, null, null],
+      foundations: [[], [], [], []],
+      tableau: [[], [], [], [], [], [], [], []],
+      selected: null,
+      moves: 0,
+      seconds: 0,
+      timerId: null,
+      isPaused: false,
+      history: []
+    };
+
+    function toggleFcPauseTimer() {
+      fcState.isPaused = !fcState.isPaused;
+      const overlay = document.getElementById('fc-pause-overlay');
+      const pauseBtn = document.getElementById('btn-fc-pause-timer');
+      if (overlay) overlay.classList.toggle('hidden', !fcState.isPaused);
+      if (pauseBtn) pauseBtn.textContent = fcState.isPaused ? '▶️' : '⏸️';
+      if (fcState.isPaused) {
+        clearInterval(fcState.timerId);
+      } else {
+        fcState.timerId = setInterval(() => {
+          fcState.seconds++;
+          const tEl = document.getElementById('fc-timer');
+          if (tEl) tEl.textContent = formatTime(fcState.seconds);
+        }, 1000);
+      }
+    }
+
+    function freecellQuitGame() {
+      clearInterval(fcState.timerId);
+      fcState.isPaused = false;
+      const pauseBtn = document.getElementById('btn-fc-pause-timer');
+      if (pauseBtn) pauseBtn.textContent = '⏸️';
+      document.getElementById('fc-pause-overlay')?.classList.add('hidden');
+      fcState.seconds = 0;
+      fcState.moves = 0;
+      fcState.cells = [null, null, null, null];
+      fcState.foundations = [[], [], [], []];
+      fcState.tableau = [[], [], [], [], [], [], [], []];
+      fcState.selected = null;
+      fcState.history = [];
+      const tEl = document.getElementById('fc-timer');
+      if (tEl) tEl.textContent = '00:00';
+      fcRender();
+      showToast('🛑 新接龍遊戲已終止');
+    }
+
+    function fcSaveHistory() {
+      fcState.history.push(JSON.stringify({
+        cells: fcState.cells,
+        foundations: fcState.foundations,
+        tableau: fcState.tableau,
+        moves: fcState.moves
+      }));
+      if (fcState.history.length > 30) fcState.history.shift();
+    }
+
+    function freecellUndo() {
+      if (fcState.history.length === 0) return;
+      const prev = JSON.parse(fcState.history.pop());
+      fcState.cells = prev.cells;
+      fcState.foundations = prev.foundations;
+      fcState.tableau = prev.tableau;
+      fcState.moves = prev.moves;
+      fcState.selected = null;
+      playSound('select');
+      fcRender();
+    }
+
+    function freecellNewGame() {
+      clearInterval(fcState.timerId);
+      fcState.isPaused = false;
+      const pauseBtn = document.getElementById('btn-fc-pause-timer');
+      if (pauseBtn) pauseBtn.textContent = '⏸️';
+      document.getElementById('fc-pause-overlay')?.classList.add('hidden');
+
+      const deck = shuffle(createDeck([0, 1, 2, 3], true));
+      fcState.cells = [null, null, null, null];
+      fcState.foundations = [[], [], [], []];
+      fcState.tableau = [[], [], [], [], [], [], [], []];
+      deck.forEach((card, i) => fcState.tableau[i % 8].push(card));
+      fcState.selected = null;
+      fcState.moves = 0;
+      fcState.seconds = 0;
+      fcState.history = [];
+      document.getElementById('fc-timer').textContent = '00:00';
+
+      fcState.timerId = setInterval(() => {
+        fcState.seconds++;
+        const tEl = document.getElementById('fc-timer');
+        if (tEl) tEl.textContent = formatTime(fcState.seconds);
+      }, 1000);
+
+      fcRender();
+    }
+
+    function fcGetMaxMovable(toEmptyCol = false) {
+      const emptyCells = fcState.cells.filter(c => c === null).length;
+      let emptyCols = fcState.tableau.filter(col => col.length === 0).length;
+      if (toEmptyCol && emptyCols > 0) emptyCols--;
+      return (1 + emptyCells) * Math.pow(2, emptyCols);
+    }
+
+    function fcIsValidSequence(cards) {
+      for (let i = 0; i < cards.length - 1; i++) {
+        if (cards[i].color === cards[i + 1].color || cards[i].rank !== cards[i + 1].rank + 1) return false;
+      }
+      return true;
+    }
+
+    function fcClickCell(idx) {
+      if (!fcState.selected) {
+        if (fcState.cells[idx]) {
+          fcState.selected = { source: 'cell', index: idx, cardIdx: 0 };
+          playSound('select');
+          fcRender();
+        }
+        return;
+      }
+      const sel = fcState.selected;
+      if (sel.source === 'cell' && sel.index === idx) {
+        fcState.selected = null;
+        fcRender();
+        return;
+      }
+      if (fcState.cells[idx] === null) {
+        let card = null;
+        if (sel.source === 'cell') card = fcState.cells[sel.index];
+        else if (sel.source === 'tableau' && sel.cardIdx === fcState.tableau[sel.index].length - 1) {
+          card = fcState.tableau[sel.index][sel.cardIdx];
+        }
+        if (card) {
+          fcSaveHistory();
+          if (sel.source === 'cell') fcState.cells[sel.index] = null;
+          else fcState.tableau[sel.index].pop();
+          fcState.cells[idx] = card;
+          fcState.selected = null;
+          fcState.moves++;
+          playSound('card');
+          fcRender();
+          return;
+        }
+      }
+      fcState.selected = fcState.cells[idx] ? { source: 'cell', index: idx, cardIdx: 0 } : null;
+      fcRender();
+    }
+
+    function fcClickFoundation(fIdx) {
+      if (!fcState.selected) return;
+      const sel = fcState.selected;
+      let card = null;
+      if (sel.source === 'cell') card = fcState.cells[sel.index];
+      else if (sel.source === 'tableau' && sel.cardIdx === fcState.tableau[sel.index].length - 1) {
+        card = fcState.tableau[sel.index][sel.cardIdx];
+      }
+      const pile = fcState.foundations[fIdx];
+      const ok = card && card.suit === fIdx && (pile.length === 0 ? card.rank === 1 : card.rank === pile[pile.length - 1].rank + 1);
+      if (ok) {
+        fcSaveHistory();
+        if (sel.source === 'cell') fcState.cells[sel.index] = null;
+        else fcState.tableau[sel.index].pop();
+        pile.push(card);
+        fcState.selected = null;
+        fcState.moves++;
+        playSound('card');
+        fcRender();
+        fcCheckWin();
+      } else {
+        fcState.selected = null;
+        fcRender();
+      }
+    }
+
+    function fcClickTableau(colIdx, cardIdx) {
+      const col = fcState.tableau[colIdx];
+      if (!fcState.selected) {
+        if (col.length === 0) return;
+        const seq = col.slice(cardIdx);
+        if (!fcIsValidSequence(seq)) {
+          showToast('⚠️ 只能選取紅黑交替遞減的連續牌組！');
+          return;
+        }
+        fcState.selected = { source: 'tableau', index: colIdx, cardIdx };
+        playSound('select');
+        fcRender();
+        return;
+      }
+
+      const sel = fcState.selected;
+      if (sel.source === 'tableau' && sel.index === colIdx && sel.cardIdx === cardIdx) {
+        fcState.selected = null;
+        fcRender();
+        return;
+      }
+
+      let moving = [];
+      if (sel.source === 'cell') moving = [fcState.cells[sel.index]];
+      else moving = fcState.tableau[sel.index].slice(sel.cardIdx);
+
+      const maxAllowed = fcGetMaxMovable(col.length === 0);
+      const targetTop = col.length > 0 ? col[col.length - 1] : null;
+      const canPlace = !targetTop || (targetTop.color !== moving[0].color && moving[0].rank === targetTop.rank - 1);
+
+      if (canPlace && moving.length <= maxAllowed) {
+        fcSaveHistory();
+        if (sel.source === 'cell') fcState.cells[sel.index] = null;
+        else fcState.tableau[sel.index].splice(sel.cardIdx);
+        fcState.tableau[colIdx].push(...moving);
+        fcState.selected = null;
+        fcState.moves++;
+        playSound('card');
+        fcRender();
+      } else {
+        if (moving.length > maxAllowed) showToast(`⚠️ 空位不足，目前最多可移動 ${maxAllowed} 張牌！`);
+        fcState.selected = null;
+        fcRender();
+      }
+    }
+
+    function freecellAutoMove() {
+      let movedAny = false;
+      let keepGoing = true;
+      while (keepGoing) {
+        keepGoing = false;
+        for (let i = 0; i < 4; i++) {
+          const c = fcState.cells[i];
+          if (c) {
+            const pile = fcState.foundations[c.suit];
+            if (pile.length === 0 ? c.rank === 1 : c.rank === pile[pile.length - 1].rank + 1) {
+              if (!movedAny) fcSaveHistory();
+              pile.push(c);
+              fcState.cells[i] = null;
+              fcState.moves++;
+              movedAny = true;
+              keepGoing = true;
+            }
+          }
+        }
+        for (let col = 0; col < 8; col++) {
+          const stack = fcState.tableau[col];
+          if (stack.length > 0) {
+            const c = stack[stack.length - 1];
+            const pile = fcState.foundations[c.suit];
+            if (pile.length === 0 ? c.rank === 1 : c.rank === pile[pile.length - 1].rank + 1) {
+              if (!movedAny) fcSaveHistory();
+              pile.push(stack.pop());
+              fcState.moves++;
+              movedAny = true;
+              keepGoing = true;
+            }
+          }
+        }
+      }
+      if (movedAny) {
+        playSound('card');
+        fcRender();
+        fcCheckWin();
+      }
+    }
+
+    function fcCheckWin() {
+      if (fcState.foundations.reduce((a, b) => a + b.length, 0) === 52) {
+        clearInterval(fcState.timerId);
+        playSound('win');
+        updateBankroll(200);
+        showToast('🏆 新接龍大獲全勝！獎勵 +200 🪙');
+      }
+    }
+
+    function fcRender(skipScale = false) {
+      if (!skipScale && currentGame === 'freecell') updateLayoutScale(true);
+      document.getElementById('fc-moves').textContent = fcState.moves;
+      document.getElementById('fc-max-move').textContent = fcGetMaxMovable(false);
+
+      for (let i = 0; i < 4; i++) {
+        const cellEl = document.getElementById(`fc-cell-${i}`);
+        cellEl.innerHTML = '';
+        if (fcState.cells[i]) {
+          const isSel = fcState.selected?.source === 'cell' && fcState.selected.index === i;
+          cellEl.appendChild(createCardElement(fcState.cells[i], { selected: isSel }));
+        } else {
+          cellEl.textContent = 'FREE';
+        }
+
+        const fEl = document.getElementById(`fc-f-${i}`);
+        fEl.innerHTML = '';
+        const pile = fcState.foundations[i];
+        if (pile.length === 0) fEl.textContent = SUITS[i].symbol;
+        else fEl.appendChild(createCardElement(pile[pile.length - 1]));
+      }
+
+      const tabEl = document.getElementById('fc-tableau');
+      tabEl.innerHTML = '';
+      const offset = layoutMetrics.offsetUp;
+
+      for (let c = 0; c < 8; c++) {
+        const colWrap = document.createElement('div');
+        colWrap.className = 'tableau-col';
+        const col = fcState.tableau[c];
+        if (col.length === 0) {
+          const slot = document.createElement('div');
+          slot.className = 'card-slot';
+          slot.onclick = () => fcClickTableau(c, 0);
+          colWrap.appendChild(slot);
+        } else {
+          col.forEach((card, idx) => {
+            const isSel = fcState.selected?.source === 'tableau' && fcState.selected.index === c && idx >= fcState.selected.cardIdx;
+            const cEl = createCardElement(card, { selected: isSel });
+            cEl.style.position = 'absolute';
+            cEl.style.top = `${idx * offset}px`;
+            cEl.style.zIndex = idx + 1;
+            cEl.onclick = (e) => {
+              e.stopPropagation();
+              fcClickTableau(c, idx);
+            };
+            colWrap.appendChild(cEl);
+          });
+        }
+        tabEl.appendChild(colWrap);
+      }
+    }
+
+    /* =========================================================================
+       3. SPIDER SOLITAIRE (With Timer, Pause & Quit)
+       ========================================================================= */
+    let spState = {
+      stock: [],
+      tableau: [[], [], [], [], [], [], [], [], [], []],
+      selected: null,
+      completed: 0,
+      seconds: 0,
+      timerId: null,
+      isPaused: false,
+      history: []
+    };
+
+    function toggleSpiderPauseTimer() {
+      spState.isPaused = !spState.isPaused;
+      const overlay = document.getElementById('spider-pause-overlay');
+      const pauseBtn = document.getElementById('btn-spider-pause-timer');
+      if (overlay) overlay.classList.toggle('hidden', !spState.isPaused);
+      if (pauseBtn) pauseBtn.textContent = spState.isPaused ? '▶️' : '⏸️';
+      if (spState.isPaused) {
+        clearInterval(spState.timerId);
+      } else {
+        spState.timerId = setInterval(() => {
+          spState.seconds++;
+          const tEl = document.getElementById('spider-timer');
+          if (tEl) tEl.textContent = formatTime(spState.seconds);
+        }, 1000);
+      }
+    }
+
+    function spiderQuitGame() {
+      clearInterval(spState.timerId);
+      spState.isPaused = false;
+      const pauseBtn = document.getElementById('btn-spider-pause-timer');
+      if (pauseBtn) pauseBtn.textContent = '⏸️';
+      document.getElementById('spider-pause-overlay')?.classList.add('hidden');
+      spState.seconds = 0;
+      spState.completed = 0;
+      spState.stock = [];
+      spState.tableau = [[], [], [], [], [], [], [], [], [], []];
+      spState.selected = null;
+      spState.history = [];
+      const tEl = document.getElementById('spider-timer');
+      if (tEl) tEl.textContent = '00:00';
+      spiderRender();
+      showToast('🛑 蜘蛛紙牌遊戲已終止');
+    }
+
+    function spiderSaveHistory() {
+      spState.history.push(JSON.stringify({
+        stock: spState.stock,
+        tableau: spState.tableau,
+        completed: spState.completed
+      }));
+      if (spState.history.length > 25) spState.history.shift();
+    }
+
+    function spiderUndo() {
+      if (spState.history.length === 0) return;
+      const prev = JSON.parse(spState.history.pop());
+      spState.stock = prev.stock;
+      spState.tableau = prev.tableau;
+      spState.completed = prev.completed;
+      spState.selected = null;
+      playSound('select');
+      spiderRender();
+    }
+
+    function spiderNewGame() {
+      clearInterval(spState.timerId);
+      spState.isPaused = false;
+      const pauseBtn = document.getElementById('btn-spider-pause-timer');
+      if (pauseBtn) pauseBtn.textContent = '⏸️';
+      document.getElementById('spider-pause-overlay')?.classList.add('hidden');
+
+      const mode = parseInt(document.getElementById('spider-suits-mode')?.value || '1', 10);
+      let pool = [];
+      if (mode === 1) {
+        for (let i = 0; i < 8; i++) pool.push(...createDeck([0], false));
+      } else if (mode === 2) {
+        for (let i = 0; i < 4; i++) pool.push(...createDeck([0, 1], false));
+      } else {
+        for (let i = 0; i < 2; i++) pool.push(...createDeck([0, 1, 2, 3], false));
+      }
+      pool = shuffle(pool);
+      spState.tableau = Array.from({ length: 10 }, () => []);
+      for (let i = 0; i < 54; i++) {
+        const card = pool.pop();
+        card.faceUp = (i >= 44);
+        spState.tableau[i % 10].push(card);
+      }
+      spState.stock = pool;
+      spState.selected = null;
+      spState.completed = 0;
+      spState.seconds = 0;
+      spState.history = [];
+      document.getElementById('spider-timer').textContent = '00:00';
+
+      spState.timerId = setInterval(() => {
+        spState.seconds++;
+        const tEl = document.getElementById('spider-timer');
+        if (tEl) tEl.textContent = formatTime(spState.seconds);
+      }, 1000);
+
+      spiderRender();
+    }
+
+    function spiderIsSameSuitRun(cards) {
+      for (let i = 0; i < cards.length - 1; i++) {
+        if (!cards[i].faceUp || !cards[i + 1].faceUp) return false;
+        if (cards[i].suit !== cards[i + 1].suit || cards[i].rank !== cards[i + 1].rank + 1) return false;
+      }
+      return true;
+    }
+
+    function spiderCheckCompleteRun(colIdx) {
+      const col = spState.tableau[colIdx];
+      if (col.length < 13) return;
+      const tail = col.slice(-13);
+      if (tail[0].rank === 13 && tail[12].rank === 1 && spiderIsSameSuitRun(tail)) {
+        col.splice(-13);
+        if (col.length > 0) col[col.length - 1].faceUp = true;
+        spState.completed++;
+        playSound('win');
+        showToast(`🕷️ 完成一套同花順 (${spState.completed}/8)！`);
+        if (spState.completed === 8) {
+          clearInterval(spState.timerId);
+          updateBankroll(300);
+          showToast('🎉 蜘蛛紙牌全破！獲得 +300 🪙！');
+        }
+      }
+    }
+
+    function spiderClickTableau(colIdx, idx) {
+      const col = spState.tableau[colIdx];
+      if (!spState.selected) {
+        if (col.length === 0) return;
+        const run = col.slice(idx);
+        if (!spiderIsSameSuitRun(run)) {
+          showToast('⚠️ 只能移動同花色且連續遞減的牌組！');
+          return;
+        }
+        spState.selected = { col: colIdx, idx };
+        playSound('select');
+        spiderRender();
+        return;
+      }
+
+      const sel = spState.selected;
+      if (sel.col === colIdx && sel.idx === idx) {
+        spState.selected = null;
+        spiderRender();
+        return;
+      }
+
+      const moving = spState.tableau[sel.col].slice(sel.idx);
+      const targetTop = col.length > 0 ? col[col.length - 1] : null;
+      if (!targetTop || moving[0].rank === targetTop.rank - 1) {
+        spiderSaveHistory();
+        spState.tableau[sel.col].splice(sel.idx);
+        if (spState.tableau[sel.col].length > 0) {
+          spState.tableau[sel.col][spState.tableau[sel.col].length - 1].faceUp = true;
+        }
+        col.push(...moving);
+        spState.selected = null;
+        playSound('card');
+        spiderCheckCompleteRun(colIdx);
+        spiderRender();
+      } else {
+        spState.selected = null;
+        spiderRender();
+      }
+    }
+
+    function spiderDealRow() {
+      if (spState.stock.length < 10) return;
+      if (spState.tableau.some(col => col.length === 0)) {
+        showToast('⚠️ 必須先將所有空列填滿才能發新一排牌！');
+        playSound('error');
+        return;
+      }
+      spiderSaveHistory();
+      for (let c = 0; c < 10; c++) {
+        const card = spState.stock.pop();
+        card.faceUp = true;
+        spState.tableau[c].push(card);
+        spiderCheckCompleteRun(c);
+      }
+      spState.selected = null;
+      playSound('card');
+      spiderRender();
+    }
+
+    function spiderRender(skipScale = false) {
+      if (!skipScale && currentGame === 'spider') updateLayoutScale(true);
+      document.getElementById('spider-completed').textContent = spState.completed;
+      const dealsLeft = Math.floor(spState.stock.length / 10);
+      document.getElementById('spider-deals').textContent = dealsLeft;
+      const dealBtn = document.getElementById('spider-deal-btn');
+      dealBtn.disabled = dealsLeft === 0;
+      dealBtn.style.opacity = dealsLeft === 0 ? '0.5' : '1';
+
+      const tabEl = document.getElementById('spider-tableau');
+      tabEl.innerHTML = '';
+      const offsetDown = layoutMetrics.offsetDown;
+      const offsetUp = layoutMetrics.offsetUp;
+      const isTiny = layoutMetrics.cardW < 42;
+
+      for (let c = 0; c < 10; c++) {
+        const colWrap = document.createElement('div');
+        colWrap.className = 'tableau-col';
+        const col = spState.tableau[c];
+        if (col.length === 0) {
+          const slot = document.createElement('div');
+          slot.className = 'card-slot';
+          slot.onclick = () => spiderClickTableau(c, 0);
+          colWrap.appendChild(slot);
+        } else {
+          let topY = 0;
+          col.forEach((card, idx) => {
+            const isSel = spState.selected?.col === c && idx >= spState.selected.idx;
+            const cEl = createCardElement(card, { selected: isSel });
+            if (isTiny) {
+              cEl.querySelectorAll('.card-center-court-suit').forEach(cs => cs.style.display = 'none');
+            }
+            cEl.style.position = 'absolute';
+            cEl.style.top = `${topY}px`;
+            cEl.style.zIndex = idx + 1;
+            cEl.onclick = (e) => {
+              e.stopPropagation();
+              spiderClickTableau(c, idx);
+            };
+            colWrap.appendChild(cEl);
+            topY += card.faceUp ? offsetUp : offsetDown;
+          });
+        }
+        tabEl.appendChild(colWrap);
+      }
+    }
+
+    /* =========================================================================
+       4. BLACKJACK 21
+       ========================================================================= */
+    let bjState = {
+      deck: [],
+      dealer: [],
+      hands: [],
+      activeHand: 0,
+      bet: 25,
+      inRound: false
+    };
+
+    function bjEnsureDeck() {
+      if (bjState.deck.length < 20) {
+        bjState.deck = shuffle([
+          ...createDeck([0, 1, 2, 3], true),
+          ...createDeck([0, 1, 2, 3], true)
+        ]);
+      }
+    }
+
+    function bjScore(cards) {
+      let sum = 0;
+      let aces = 0;
+      for (const c of cards) {
+        if (!c.faceUp) continue;
+        if (c.rank === 1) { sum += 11; aces++; }
+        else if (c.rank >= 10) sum += 10;
+        else sum += c.rank;
+      }
+      while (sum > 21 && aces > 0) {
+        sum -= 10;
+        aces--;
+      }
+      return sum;
+    }
+
+    function bjAddBet(amt) {
+      if (bjState.inRound) return;
+      if (bjState.bet + amt > bankroll) {
+        showToast('⚠️ 籌碼餘額不足！');
+        return;
+      }
+      bjState.bet += amt;
+      playSound('select');
+      bjRender();
+    }
+
+    function bjClearBet() {
+      if (bjState.inRound) return;
+      bjState.bet = 0;
+      bjRender();
+    }
+
+    function bjStartDeal() {
+      if (bjState.inRound) return;
+      if (bjState.bet <= 0 || bjState.bet > bankroll) {
+        showToast('⚠️ 請先下注有效籌碼！');
+        return;
+      }
+      updateBankroll(-bjState.bet);
+      bjEnsureDeck();
+
+      const p1 = bjState.deck.pop();
+      const d1 = bjState.deck.pop();
+      const p2 = bjState.deck.pop();
+      const d2 = { ...bjState.deck.pop(), faceUp: false };
+
+      bjState.dealer = [d1, d2];
+      bjState.hands = [{ cards: [p1, p2], bet: bjState.bet, done: false, result: '' }];
+      bjState.activeHand = 0;
+      bjState.inRound = true;
+      playSound('card');
+
+      const pScore = bjScore(bjState.hands[0].cards);
+      if (pScore === 21) {
+        bjDealerTurn();
+      } else {
+        document.getElementById('bj-status-box').textContent = '輪到你行動：要牌 Hit、停牌 Stand 或雙倍 Double';
+        bjRender();
+      }
+    }
+
+    function bjHit() {
+      if (!bjState.inRound) return;
+      const hand = bjState.hands[bjState.activeHand];
+      hand.cards.push(bjState.deck.pop());
+      playSound('card');
+      const sc = bjScore(hand.cards);
+      if (sc >= 21) {
+        hand.done = true;
+        if (sc > 21) hand.result = '💥 爆牌 Bust';
+        bjAdvanceHand();
+      } else {
+        bjRender();
+      }
+    }
+
+    function bjStand() {
+      if (!bjState.inRound) return;
+      bjState.hands[bjState.activeHand].done = true;
+      bjAdvanceHand();
+    }
+
+    function bjDouble() {
+      if (!bjState.inRound) return;
+      const hand = bjState.hands[bjState.activeHand];
+      if (hand.cards.length !== 2 || bankroll < hand.bet) return;
+      updateBankroll(-hand.bet);
+      hand.bet *= 2;
+      hand.cards.push(bjState.deck.pop());
+      hand.done = true;
+      playSound('card');
+      bjAdvanceHand();
+    }
+
+    function bjSplit() {
+      if (!bjState.inRound || bjState.hands.length > 1) return;
+      const h = bjState.hands[0];
+      if (h.cards.length !== 2 || bankroll < h.bet) return;
+      updateBankroll(-h.bet);
+      const c2 = h.cards.pop();
+      h.cards.push(bjState.deck.pop());
+      bjState.hands.push({ cards: [c2, bjState.deck.pop()], bet: h.bet, done: false, result: '' });
+      playSound('card');
+      bjRender();
+    }
+
+    function bjAdvanceHand() {
+      if (bjState.activeHand + 1 < bjState.hands.length) {
+        bjState.activeHand++;
+        bjRender();
+      } else {
+        bjDealerTurn();
+      }
+    }
+
+    function bjDealerTurn() {
+      bjState.dealer.forEach(c => c.faceUp = true);
+      const allBusted = bjState.hands.every(h => bjScore(h.cards) > 21);
+      if (!allBusted) {
+        while (bjScore(bjState.dealer) < 17) {
+          bjState.dealer.push(bjState.deck.pop());
+        }
+      }
+
+      const dScore = bjScore(bjState.dealer);
+      let totalWin = 0;
+      const summary = [];
+
+      bjState.hands.forEach((h, i) => {
+        const pScore = bjScore(h.cards);
+        const isNaturalBJ = (h.cards.length === 2 && pScore === 21 && bjState.hands.length === 1);
+        if (pScore > 21) {
+          h.result = '💥 爆牌輸';
+          summary.push(`手牌${i + 1}: 爆牌`);
+        } else if (isNaturalBJ && dScore !== 21) {
+          const pay = Math.floor(h.bet * 2.5);
+          totalWin += pay;
+          h.result = `🎉 Blackjack +${pay}`;
+          summary.push(`Blackjack! 贏 ${pay} 🪙`);
+        } else if (dScore > 21 || pScore > dScore) {
+          const pay = h.bet * 2;
+          totalWin += pay;
+          h.result = `✅ 贏 +${pay}`;
+          summary.push(`贏得 ${pay} 🪙`);
+        } else if (pScore === dScore) {
+          totalWin += h.bet;
+          h.result = '🤝 平手退注';
+          summary.push('平手 Push');
+        } else {
+          h.result = '❌ 莊家勝';
+          summary.push('莊家勝');
+        }
+      });
+
+      if (totalWin > 0) {
+        updateBankroll(totalWin);
+        playSound('win');
+      }
+      bjState.inRound = false;
+      if (bjState.bet > bankroll) bjState.bet = Math.min(25, bankroll);
+      document.getElementById('bj-status-box').textContent = `結果：${summary.join(' | ')}`;
+      bjRender();
+    }
+
+    function bjRender() {
+      document.getElementById('bj-current-bet').textContent = bjState.bet;
+      document.getElementById('bj-dealer-score').textContent = bjScore(bjState.dealer);
+
+      const dRow = document.getElementById('bj-dealer-cards');
+      dRow.innerHTML = '';
+      if (bjState.dealer.length === 0) {
+        dRow.appendChild(createCardElement({ faceUp: false }));
+        dRow.appendChild(createCardElement({ faceUp: false }));
+      } else {
+        bjState.dealer.forEach(c => dRow.appendChild(createCardElement(c)));
+      }
+
+      const pHands = document.getElementById('bj-player-hands');
+      pHands.innerHTML = '';
+      if (bjState.hands.length === 0) {
+        const box = document.createElement('div');
+        box.className = 'hand-box';
+        box.innerHTML = '<div class="hand-label"><span>🧑 玩家 Player</span><span class="score-pill">0</span></div>';
+        const row = document.createElement('div');
+        row.className = 'cards-row';
+        row.appendChild(createCardElement({ faceUp: false }));
+        row.appendChild(createCardElement({ faceUp: false }));
+        box.appendChild(row);
+        pHands.appendChild(box);
+      } else {
+        bjState.hands.forEach((h, idx) => {
+          const box = document.createElement('div');
+          box.className = 'hand-box';
+          const activeTag = (bjState.inRound && idx === bjState.activeHand) ? ' 👈' : '';
+          box.innerHTML = `<div class="hand-label"><span>🧑 玩家${bjState.hands.length > 1 ? ' #' + (idx + 1) : ''}${activeTag}</span><span class="score-pill">${bjScore(h.cards)}</span></div>`;
+          const row = document.createElement('div');
+          row.className = 'cards-row';
+          h.cards.forEach(c => row.appendChild(createCardElement(c)));
+          box.appendChild(row);
+          if (h.result) {
+            const res = document.createElement('div');
+            res.style.cssText = 'font-size:11px; font-weight:800; color:#fcd34d;';
+            res.textContent = h.result;
+            box.appendChild(res);
+          }
+          pHands.appendChild(box);
+        });
+      }
+
+      document.getElementById('bj-bet-controls').classList.toggle('hidden', bjState.inRound);
+      document.getElementById('bj-play-controls').classList.toggle('hidden', !bjState.inRound);
+
+      if (bjState.inRound) {
+        const cur = bjState.hands[bjState.activeHand];
+        document.getElementById('bj-btn-double').classList.toggle('hidden', !(cur.cards.length === 2 && bankroll >= cur.bet));
+        const val0 = cur.cards[0]?.rank >= 10 ? 10 : cur.cards[0]?.rank;
+        const val1 = cur.cards[1]?.rank >= 10 ? 10 : cur.cards[1]?.rank;
+        const canSplit = bjState.hands.length === 1 && cur.cards.length === 2 && val0 === val1 && bankroll >= cur.bet;
+        document.getElementById('bj-btn-split').classList.toggle('hidden', !canSplit);
+      }
+    }
+
+    /* =========================================================================
+       5. VIDEO POKER (JACKS OR BETTER)
+       ========================================================================= */
+    let vpState = {
+      deck: [],
+      hand: [],
+      held: [false, false, false, false, false],
+      phase: 'deal',
+      bet: 25,
+      winId: null
+    };
+
+    function vpAction() {
+      const btn = document.getElementById('vp-action-btn');
+      if (vpState.phase === 'deal') {
+        const bet = parseInt(document.getElementById('vp-bet-amount')?.value || '25', 10);
+        if (bet > bankroll) {
+          showToast('⚠️ 籌碼不足，請先領取免費籌碼！');
+          return;
+        }
+        updateBankroll(-bet);
+        vpState.bet = bet;
+        vpState.deck = shuffle(createDeck([0, 1, 2, 3], true));
+        vpState.hand = [vpState.deck.pop(), vpState.deck.pop(), vpState.deck.pop(), vpState.deck.pop(), vpState.deck.pop()];
+        vpState.held = [false, false, false, false, false];
+        vpState.phase = 'draw';
+        vpState.winId = null;
+        btn.textContent = '🔄 換牌 DRAW';
+        document.getElementById('vp-result-banner').textContent = '點擊要保留 (HOLD) 的撲克牌，然後按「換牌 DRAW」！';
+        playSound('card');
+        vpRender();
+      } else {
+        for (let i = 0; i < 5; i++) {
+          if (!vpState.held[i]) vpState.hand[i] = vpState.deck.pop();
+        }
+        const evalRes = vpEvaluateHand(vpState.hand);
+        vpState.winId = evalRes.id;
+        vpState.phase = 'deal';
+        btn.textContent = '🃏 發牌 DEAL';
+        if (evalRes.mult > 0) {
+          const payout = vpState.bet * evalRes.mult;
+          updateBankroll(payout);
+          playSound('win');
+          document.getElementById('vp-result-banner').textContent = `🎉 ${evalRes.label}！贏得 ${payout} 🪙 (${evalRes.mult}x)`;
+        } else {
+          playSound('card');
+          document.getElementById('vp-result-banner').textContent = '未中獎，再試一局！';
+        }
+        vpRender();
+      }
+    }
+
+    function vpToggleHold(idx) {
+      if (vpState.phase !== 'draw') return;
+      vpState.held[idx] = !vpState.held[idx];
+      playSound('select');
+      vpRender();
+    }
+
+    function vpEvaluateHand(cards) {
+      const ranks = cards.map(c => c.rank).sort((a, b) => a - b);
+      const suits = cards.map(c => c.suit);
+      const isFlush = suits.every(s => s === suits[0]);
+      const counts = {};
+      ranks.forEach(r => counts[r] = (counts[r] || 0) + 1);
+      const freq = Object.values(counts).sort((a, b) => b - a);
+
+      const isRoyal = isFlush && ranks.join(',') === '1,10,11,12,13';
+      const isStraight = (ranks[4] - ranks[0] === 4 && freq[0] === 1) || ranks.join(',') === '1,10,11,12,13';
+
+      if (isRoyal) return { id: 'royal', label: '皇家同花順 Royal Flush', mult: 250 };
+      if (isFlush && isStraight) return { id: 'sf', label: '同花順 Straight Flush', mult: 50 };
+      if (freq[0] === 4) return { id: '4k', label: '四條 Four of a Kind', mult: 25 };
+      if (freq[0] === 3 && freq[1] === 2) return { id: 'fh', label: '葫蘆 Full House', mult: 9 };
+      if (isFlush) return { id: 'fl', label: '同花 Flush', mult: 6 };
+      if (isStraight) return { id: 'st', label: '順子 Straight', mult: 4 };
+      if (freq[0] === 3) return { id: '3k', label: '三條 Three of a Kind', mult: 3 };
+      if (freq[0] === 2 && freq[1] === 2) return { id: '2p', label: '兩對 Two Pair', mult: 2 };
+      if (freq[0] === 2) {
+        const pairRank = parseInt(Object.keys(counts).find(k => counts[k] === 2), 10);
+        if (pairRank === 1 || pairRank >= 11) {
+          return { id: 'job', label: '傑克或以上一對 Jacks or Better', mult: 1 };
+        }
+      }
+      return { id: null, label: '無牌型', mult: 0 };
+    }
+
+    function vpRender() {
+      document.querySelectorAll('.vp-pay-cell').forEach(c => c.classList.remove('highlight'));
+      if (vpState.winId) {
+        document.getElementById(`vp-pay-${vpState.winId}`)?.classList.add('highlight');
+      }
+
+      const row = document.getElementById('vp-cards-row');
+      row.innerHTML = '';
+      vpState.hand.forEach((card, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'vp-card-wrap';
+        const badge = document.createElement('div');
+        badge.className = `hold-badge${vpState.held[idx] ? ' active' : ''}`;
+        badge.textContent = vpState.held[idx] ? 'HOLD' : '點擊保留';
+        const cEl = createCardElement(card, { selected: vpState.held[idx] });
+        cEl.onclick = () => vpToggleHold(idx);
+        wrap.appendChild(badge);
+        wrap.appendChild(cEl);
+        row.appendChild(wrap);
+      });
+    }
+
+    /* =========================================================================
+       6. MEMORY MATCH (With Timer, Pause & Quit)
+       ========================================================================= */
+    let memState = {
+      cards: [],
+      flipped: [],
+      matched: new Set(),
+      flips: 0,
+      seconds: 0,
+      timerId: null,
+      isPaused: false,
+      locked: false
+    };
+
+    function toggleMemoryPauseTimer() {
+      memState.isPaused = !memState.isPaused;
+      const overlay = document.getElementById('memory-pause-overlay');
+      const pauseBtn = document.getElementById('btn-mem-pause-timer');
+      if (overlay) overlay.classList.toggle('hidden', !memState.isPaused);
+      if (pauseBtn) pauseBtn.textContent = memState.isPaused ? '▶️' : '⏸️';
+      if (memState.isPaused) {
+        clearInterval(memState.timerId);
+      } else {
+        memState.timerId = setInterval(() => {
+          memState.seconds++;
+          const el = document.getElementById('mem-timer');
+          if (el) el.textContent = formatTime(memState.seconds);
+        }, 1000);
+      }
+    }
+
+    function memoryQuitGame() {
+      clearInterval(memState.timerId);
+      memState.isPaused = false;
+      const pauseBtn = document.getElementById('btn-mem-pause-timer');
+      if (pauseBtn) pauseBtn.textContent = '⏸️';
+      document.getElementById('memory-pause-overlay')?.classList.add('hidden');
+      memState.seconds = 0;
+      memState.flips = 0;
+      memState.cards = [];
+      memState.flipped = [];
+      memState.matched = new Set();
+      memState.locked = false;
+      document.getElementById('mem-pairs').textContent = '0';
+      document.getElementById('mem-flips').textContent = '0';
+      document.getElementById('mem-timer').textContent = '00:00';
+      memoryRender();
+      showToast('🛑 記憶翻牌遊戲已終止');
+    }
+
+    function memoryNewGame() {
+      clearInterval(memState.timerId);
+      memState.isPaused = false;
+      const pauseBtn = document.getElementById('btn-mem-pause-timer');
+      if (pauseBtn) pauseBtn.textContent = '⏸️';
+      document.getElementById('memory-pause-overlay')?.classList.add('hidden');
+
+      const total = parseInt(document.getElementById('memory-difficulty')?.value || '16', 10);
+      const pairCount = total / 2;
+      const baseDeck = shuffle(createDeck([0, 1, 2, 3], true)).slice(0, pairCount);
+      memState.cards = shuffle([...baseDeck, ...baseDeck.map(c => ({ ...c }))]);
+      memState.flipped = [];
+      memState.matched = new Set();
+      memState.flips = 0;
+      memState.seconds = 0;
+      memState.locked = false;
+
+      document.getElementById('mem-pairs').textContent = '0';
+      document.getElementById('mem-total-pairs').textContent = String(pairCount);
+      document.getElementById('mem-flips').textContent = '0';
+      document.getElementById('mem-timer').textContent = '00:00';
+
+      memState.timerId = setInterval(() => {
+        memState.seconds++;
+        const el = document.getElementById('mem-timer');
+        if (el) el.textContent = formatTime(memState.seconds);
+      }, 1000);
+
+      memoryRender();
+    }
+
+    function memoryFlipCard(idx) {
+      if (memState.isPaused || memState.locked || memState.matched.has(idx) || memState.flipped.includes(idx)) return;
+      memState.flipped.push(idx);
+      memState.flips++;
+      document.getElementById('mem-flips').textContent = String(memState.flips);
+      playSound('card');
+      memoryRender(true);
+
+      if (memState.flipped.length === 2) {
+        const [a, b] = memState.flipped;
+        const cA = memState.cards[a];
+        const cB = memState.cards[b];
+        if (cA.rank === cB.rank && cA.suit === cB.suit) {
+          memState.matched.add(a);
+          memState.matched.add(b);
+          memState.flipped = [];
+          const pairsFound = memState.matched.size / 2;
+          document.getElementById('mem-pairs').textContent = String(pairsFound);
+          playSound('win');
+          memoryRender(true);
+          if (memState.matched.size === memState.cards.length) {
+            clearInterval(memState.timerId);
+            updateBankroll(100);
+            showToast('🧠 記憶配對全部完成！獲得 +100 🪙');
+          }
+        } else {
+          memState.locked = true;
+          setTimeout(() => {
+            memState.flipped = [];
+            memState.locked = false;
+            memoryRender(true);
+          }, 700);
+        }
+      }
+    }
+
+    function memoryRender(skipScale = false) {
+      if (!skipScale && currentGame === 'memory') updateLayoutScale(true);
+      const grid = document.getElementById('memory-grid');
+      grid.style.gridTemplateColumns = `repeat(${layoutMetrics.memCols}, minmax(0, 1fr))`;
+      grid.innerHTML = '';
+
+      memState.cards.forEach((card, idx) => {
+        const isUp = memState.flipped.includes(idx) || memState.matched.has(idx);
+        const cEl = createCardElement(isUp ? { ...card, faceUp: true } : { faceUp: false });
+        if (memState.matched.has(idx)) {
+          cEl.style.opacity = '0.72';
+          cEl.style.transform = 'scale(0.95)';
+        }
+        cEl.onclick = () => memoryFlipCard(idx);
+        grid.appendChild(cEl);
+      });
+    }
+
+    /* =========================================================================
+       INITIALIZE (OPEN BY DEFAULT IN TERMINATED / CLEARED STATE)
+       ========================================================================= */
+    function terminateAllGames() {
+      // Klondike terminated state
+      clearInterval(kState.timerId);
+      kState.seconds = 0;
+      kState.moves = 0;
+      kState.stock = [];
+      kState.waste = [];
+      kState.foundations = [[], [], [], []];
+      kState.tableau = [[], [], [], [], [], [], []];
+      kState.selected = null;
+      kState.history = [];
+      document.getElementById('klondike-timer').textContent = '00:00';
+      klondikeRender();
+
+      // FreeCell terminated state
+      clearInterval(fcState.timerId);
+      fcState.seconds = 0;
+      fcState.moves = 0;
+      fcState.cells = [null, null, null, null];
+      fcState.foundations = [[], [], [], []];
+      fcState.tableau = [[], [], [], [], [], [], [], []];
+      fcState.selected = null;
+      fcState.history = [];
+      document.getElementById('fc-timer').textContent = '00:00';
+      fcRender();
+
+      // Spider terminated state
+      clearInterval(spState.timerId);
+      spState.seconds = 0;
+      spState.completed = 0;
+      spState.stock = [];
+      spState.tableau = [[], [], [], [], [], [], [], [], [], []];
+      spState.selected = null;
+      spState.history = [];
+      document.getElementById('spider-timer').textContent = '00:00';
+      spiderRender();
+
+      // Memory Match terminated state
+      clearInterval(memState.timerId);
+      memState.seconds = 0;
+      memState.flips = 0;
+      memState.cards = [];
+      memState.flipped = [];
+      memState.matched = new Set();
+      memState.locked = false;
+      document.getElementById('mem-pairs').textContent = '0';
+      document.getElementById('mem-flips').textContent = '0';
+      document.getElementById('mem-timer').textContent = '00:00';
+      memoryRender();
+
+      // Blackjack & Video Poker
+      bjRender();
+      vpState.hand = createDeck([0, 1, 2, 3], true).filter(c => c.rank === 1 || c.rank >= 10).slice(0, 5);
+      vpRender();
+
+      updateBankroll(0);
+      updateLayoutScale();
+    }
+
+    function bootstrapAllGames() {
+      terminateAllGames();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootstrapAllGames);
+    } else {
+      bootstrapAllGames();
+    }
+
+    window.addEventListener('resize', () => updateLayoutScale());
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => updateLayoutScale());
+    }
+  </script>
+</body>
+</html>
