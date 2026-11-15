@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-HK" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>記憶翻牌 Memory Flip Card Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* 緊湊型 Header：縮小每一行的行距與間距 */
+    header {
+      padding: 4px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      line-height: 1.15;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    /* 3D 翻牌動畫設定 */
+    .perspective {
+      perspective: 1000px;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.45s cubic-bezier(0.4, 0.2, 0.2, 1);
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+
+    .card.flipped .card-inner,
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front,
+    .card-back {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+    }
+
+    .card-front {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1.5px solid rgba(51, 65, 85, 0.9);
+      color: #10b981;
+    }
+
+    .card-front:hover {
+      border-color: #34d399;
+    }
+
+    .card-back {
+      background: linear-gradient(135deg, #064e3b 0%, #0f172a 100%);
+      border: 1.5px solid #10b981;
+      transform: rotateY(180deg);
+    }
+
+    /* 啤牌與麻雀專屬白底精緻卡面 */
+    .card-back.light-face {
+      background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+      border: 1.5px solid #cbd5e1;
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.8), 0 3px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .card.matched .card-back {
+      background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+      border-color: #6ee7b7;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.45);
+    }
+
+    .card.matched .card-back.light-face {
+      background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%);
+      border-color: #10b981;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.55);
+    }
+
+    /* 遊戲桌面容器：確保完全置中且不超出上下可視範圍 */
+    #board-wrapper {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
+      overflow: hidden;
+    }
+
+    #game-board {
+      display: grid;
+      width: 100%;
+      height: 100%;
+      gap: 6px;
+      margin: auto;
+      align-content: stretch;
+      justify-content: stretch;
+    }
+
+    .card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    /* 電腦版 / 平板寬螢幕預設網格大小 */
+    #game-board.mode-12 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-rows: repeat(3, minmax(0, 1fr));
+      max-width: 480px;
+      max-height: 400px;
+    }
+    #game-board.mode-16 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-rows: repeat(4, minmax(0, 1fr));
+      max-width: 460px;
+      max-height: 480px;
+    }
+    #game-board.mode-24 {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-rows: repeat(4, minmax(0, 1fr));
+      max-width: 640px;
+      max-height: 460px;
+    }
+
+    /* 手機直向螢幕專屬調整：明確固定列高比例，縮小闊度與高度，絕不重疊或超出上下邊界 */
+    @media (max-width: 640px) {
+      header {
+        padding: 3px 6px;
+        gap: 2px;
+      }
+
+      #board-wrapper {
+        padding: 4px 6px;
+      }
+
+      #game-board {
+        gap: 5px;
+      }
+
+      /* 12 張 (4欄 x 3列) */
+      #game-board.mode-12 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(3, minmax(0, 1fr));
+        max-width: 300px;
+        max-height: min(300px, calc(100dvh - 102px));
+      }
+
+      /* 16 張 (4欄 x 4列) */
+      #game-board.mode-16 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(4, minmax(0, 1fr));
+        max-width: 285px;
+        max-height: min(350px, calc(100dvh - 102px));
+      }
+
+      /* 24 張 (4欄 x 6列) */
+      #game-board.mode-24 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(6, minmax(0, 1fr));
+        max-width: 245px;
+        max-height: min(440px, calc(100dvh - 100px));
+      }
+
+      .card-front,
+      .card-back {
+        border-radius: 7px;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-zinc-950 text-slate-100 font-sans">
+
+  <!-- 緊湊型 Header -->
+  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800/80 shrink-0 z-20">
+    <!-- 第一行：標題、圖形主題選擇與控制按鈕（暫停 / 提示 / 重玩） -->
+    <div class="header-row">
+      <div class="flex items-center gap-1.5 min-w-0">
+        <i class="fa-solid fa-brain text-emerald-400 text-xs sm:text-sm shrink-0"></i>
+        <h1 class="text-xs sm:text-sm font-bold tracking-wide text-slate-100 truncate">記憶翻牌</h1>
+        <!-- 多組圖形 Preset 選單 -->
+        <select id="preset-select" title="選擇牌面圖形主題" class="ml-1 px-1.5 py-0.5 text-[11px] font-semibold rounded bg-slate-800 text-emerald-300 border border-slate-700 focus:outline-none focus:border-emerald-500 cursor-pointer">
+          <option value="animals">🐾 可愛動物</option>
+          <option value="poker">♠️ 啤牌撲克</option>
+          <option value="mahjong">🀄 香港麻雀</option>
+          <option value="food">🍩 美食甜點</option>
+          <option value="transport">🚀 交通太空</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-1 shrink-0">
+        <button id="btn-pause" title="暫停 / 繼續計時" class="px-2 py-0.5 text-[11px] font-semibold rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30 transition">
+          <i id="icon-pause" class="fa-solid fa-pause mr-0.5"></i><span id="label-pause">暫停</span>
+        </button>
+        <button id="btn-peek" title="偷看 1.2 秒" class="px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition">
+          <i class="fa-solid fa-eye mr-0.5"></i>提示
+        </button>
+        <button id="btn-restart" class="px-2 py-0.5 text-[11px] font-semibold rounded bg-emerald-600 hover:bg-emerald-500 text-white transition">
+          <i class="fa-solid fa-rotate-right mr-0.5"></i>重玩
+        </button>
+      </div>
+    </div>
+
+    <!-- 第二行：牌數選擇 (12 / 16 / 24 隻) 與步數/時間統計 -->
+    <div class="header-row">
+      <div class="flex items-center gap-1" id="difficulty-buttons">
+        <button data-count="12" class="diff-btn px-2 py-0.5 text-[11px] font-bold rounded bg-emerald-500/25 text-emerald-400 border border-emerald-500/50 transition">12隻</button>
+        <button data-count="16" class="diff-btn px-2 py-0.5 text-[11px] font-bold rounded bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">16隻</button>
+        <button data-count="24" class="diff-btn px-2 py-0.5 text-[11px] font-bold rounded bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition">24隻</button>
+      </div>
+
+      <div class="flex items-center gap-2 text-[11px] font-mono text-slate-300">
+        <span>步數: <strong id="stat-moves" class="text-emerald-400">0</strong></span>
+        <span>配對: <strong id="stat-matches" class="text-cyan-400">0/6</strong></span>
+        <span>時間: <strong id="stat-time" class="text-amber-400">00:00</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- 卡牌主區域 -->
+  <main id="board-wrapper">
+    <div id="game-board" class="mode-12"></div>
+
+    <!-- 暫停遮罩層（防止暫停時偷看牌面，點擊按鈕繼續遊戲） -->
+    <div id="pause-overlay" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md hidden flex-col items-center justify-center p-4 text-center">
+      <div class="bg-slate-900/95 border border-sky-500/40 rounded-2xl p-5 max-w-xs w-full shadow-2xl space-y-3">
+        <div class="w-12 h-12 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center mx-auto text-xl">
+          <i class="fa-solid fa-pause"></i>
+        </div>
+        <h2 class="text-base font-bold text-white">遊戲已暫停</h2>
+        <p class="text-xs text-slate-400">計時器已停止，點擊下方按鈕繼續配對。</p>
+        <button id="btn-resume" class="w-full py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm transition">
+          <i class="fa-solid fa-play mr-1"></i>繼續遊戲
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 過關勝利彈窗 -->
+  <div id="win-modal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/40 rounded-2xl p-5 max-w-xs w-full text-center shadow-2xl space-y-3">
+      <div class="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-2xl">
+        <i class="fa-solid fa-trophy"></i>
+      </div>
+      <h2 class="text-lg font-bold text-white">恭喜完成配對！</h2>
+      <p class="text-xs text-slate-300">
+        你用了 <span id="win-moves" class="text-emerald-400 font-bold">0</span> 步，耗時 <span id="win-time" class="text-amber-400 font-bold">00:00</span> 完成挑戰！
+      </p>
+      <button id="btn-play-again" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm transition">
+        再玩一局
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // 多組圖形 Preset（支援動物、啤牌撲克、香港麻雀、美食甜點、交通太空）
+    const CARD_PRESETS = {
+      animals: {
+        name: '可愛動物',
+        lightFace: false,
+        items: [
+          { id: 'dog', icon: '🐶' }, { id: 'cat', icon: '🐱' }, { id: 'fox', icon: '🦊' }, { id: 'panda', icon: '🐼' },
+          { id: 'koala', icon: '🐨' }, { id: 'lion', icon: '🦁' }, { id: 'frog', icon: '🐸' }, { id: 'monkey', icon: '🐵' },
+          { id: 'unicorn', icon: '🦄' }, { id: 'bee', icon: '🐝' }, { id: 'turtle', icon: '🐢' }, { id: 'octopus', icon: '🐙' },
+          { id: 'butterfly', icon: '🦋' }, { id: 'dolphin', icon: '🐬' }, { id: 'flamingo', icon: '🦩' }, { id: 'dino', icon: '🦖' }
+        ]
+      },
+      poker: {
+        name: '啤牌撲克',
+        lightFace: true,
+        items: [
+          { id: 'SA', rank: 'A', suit: '♠', color: 'text-slate-900' },
+          { id: 'HK', rank: 'K', suit: '♥', color: 'text-rose-600' },
+          { id: 'DQ', rank: 'Q', suit: '♦', color: 'text-rose-600' },
+          { id: 'CJ', rank: 'J', suit: '♣', color: 'text-slate-900' },
+          { id: 'H10', rank: '10', suit: '♥', color: 'text-rose-600' },
+          { id: 'S9', rank: '9', suit: '♠', color: 'text-slate-900' },
+          { id: 'D8', rank: '8', suit: '♦', color: 'text-rose-600' },
+          { id: 'C7', rank: '7', suit: '♣', color: 'text-slate-900' },
+          { id: 'HA', rank: 'A', suit: '♥', color: 'text-rose-600' },
+          { id: 'SK', rank: 'K', suit: '♠', color: 'text-slate-900' },
+          { id: 'CQ', rank: 'Q', suit: '♣', color: 'text-slate-900' },
+          { id: 'DJ', rank: 'J', suit: '♦', color: 'text-rose-600' },
+          { id: 'JOKER', rank: '★', suit: 'JOKER', color: 'text-amber-600' },
+          { id: 'DA', rank: 'A', suit: '♦', color: 'text-rose-600' },
+          { id: 'CA', rank: 'A', suit: '♣', color: 'text-slate-900' },
+          { id: 'H7', rank: '7', suit: '♥', color: 'text-rose-600' }
+        ]
+      },
+      mahjong: {
+        name: '香港麻雀',
+        lightFace: true,
+        items: [
+          { id: 'zhong', top: '紅', main: '中', color: 'text-rose-600', subColor: 'text-rose-500' },
+          { id: 'fa', top: '青', main: '發', color: 'text-emerald-700', subColor: 'text-emerald-600' },
+          { id: 'bai', top: '白', main: '板', color: 'text-blue-700', subColor: 'text-blue-600', frame: true },
+          { id: 'east', top: '風', main: '東', color: 'text-slate-900', subColor: 'text-slate-500' },
+          { id: 'south', top: '風', main: '南', color: 'text-slate-900', subColor: 'text-slate-500' },
+          { id: 'west', top: '風', main: '西', color: 'text-slate-900', subColor: 'text-slate-500' },
+          { id: 'north', top: '風', main: '北', color: 'text-slate-900', subColor: 'text-slate-500' },
+          { id: 'wan1', top: '一', main: '萬', color: 'text-rose-600', subColor: 'text-slate-900' },
+          { id: 'wan9', top: '九', main: '萬', color: 'text-rose-600', subColor: 'text-slate-900' },
+          { id: 'tong1', top: '一筒', main: '🔘', color: 'text-blue-700', subColor: 'text-blue-700' },
+          { id: 'suo1', top: '一索', main: '🦚', color: 'text-emerald-700', subColor: 'text-emerald-700' },
+          { id: 'suo8', top: '八', main: '索', color: 'text-emerald-700', subColor: 'text-emerald-800' },
+          { id: 'flower1', top: '春', main: '🌸', color: 'text-rose-600', subColor: 'text-rose-600' },
+          { id: 'flower2', top: '夏', main: '🌻', color: 'text-amber-600', subColor: 'text-amber-600' },
+          { id: 'flower3', top: '秋', main: '🍁', color: 'text-orange-600', subColor: 'text-orange-600' },
+          { id: 'flower4', top: '冬', main: '❄️', color: 'text-sky-600', subColor: 'text-sky-600' }
+        ]
+      },
+      food: {
+        name: '美食甜點',
+        lightFace: false,
+        items: [
+          { id: 'apple', icon: '🍎' }, { id: 'watermelon', icon: '🍉' }, { id: 'strawberry', icon: '🍓' }, { id: 'pineapple', icon: '🍍' },
+          { id: 'avocado', icon: '🥑' }, { id: 'donut', icon: '🍩' }, { id: 'burger', icon: '🍔' }, { id: 'pizza', icon: '🍕' },
+          { id: 'sushi', icon: '🍣' }, { id: 'ramen', icon: '🍜' }, { id: 'icecream', icon: '🍦' }, { id: 'cake', icon: '🎂' },
+          { id: 'croissant', icon: '🥐' }, { id: 'taco', icon: '🌮' }, { id: 'boba', icon: '🧋' }, { id: 'cherry', icon: '🍒' }
+        ]
+      },
+      transport: {
+        name: '交通太空',
+        lightFace: false,
+        items: [
+          { id: 'rocket', icon: '🚀' }, { id: 'ufo', icon: '🛸' }, { id: 'planet', icon: '🪐' }, { id: 'airplane', icon: '✈️' },
+          { id: 'helicopter', icon: '🚁' }, { id: 'train', icon: '🚄' }, { id: 'car', icon: '🏎️' }, { id: 'police', icon: '🚓' },
+          { id: 'fire', icon: '🚒' }, { id: 'bus', icon: '🚌' }, { id: 'ship', icon: '🚢' }, { id: 'sailboat', icon: '⛵' },
+          { id: 'bike', icon: '🚲' }, { id: 'scooter', icon: '🛵' }, { id: 'astronaut', icon: '👨‍🚀' }, { id: 'moon', icon: '🌙' }
+        ]
+      }
+    };
+
+    let cardCount = 12;
+    let currentPresetKey = 'animals';
+    let flippedCards = [];
+    let matchedPairs = 0;
+    let moves = 0;
+    let isLocked = false;
+    let isPaused = false;
+    let timerInterval = null;
+    let secondsElapsed = 0;
+    let gameStarted = false;
+
+    const gameBoard = document.getElementById('game-board');
+    const statMoves = document.getElementById('stat-moves');
+    const statMatches = document.getElementById('stat-matches');
+    const statTime = document.getElementById('stat-time');
+    const winModal = document.getElementById('win-modal');
+    const winMoves = document.getElementById('win-moves');
+    const winTime = document.getElementById('win-time');
+    const pauseOverlay = document.getElementById('pause-overlay');
+    const btnPause = document.getElementById('btn-pause');
+    const iconPause = document.getElementById('icon-pause');
+    const labelPause = document.getElementById('label-pause');
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function startTimer() {
+      if (gameStarted && timerInterval) return;
+      gameStarted = true;
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (!isPaused) {
+          secondsElapsed++;
+          statTime.textContent = formatTime(secondsElapsed);
+        }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function setPausedState(pause) {
+      if (!gameStarted && pause) return; // 尚未開始翻牌前不需暫停
+      if (matchedPairs === cardCount / 2) return; // 已過關不需暫停
+
+      isPaused = pause;
+      if (isPaused) {
+        pauseOverlay.classList.remove('hidden');
+        pauseOverlay.classList.add('flex');
+        iconPause.className = 'fa-solid fa-play mr-0.5';
+        labelPause.textContent = '繼續';
+        btnPause.className = 'px-2 py-0.5 text-[11px] font-semibold rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 transition';
+      } else {
+        pauseOverlay.classList.add('hidden');
+        pauseOverlay.classList.remove('flex');
+        iconPause.className = 'fa-solid fa-pause mr-0.5';
+        labelPause.textContent = '暫停';
+        btnPause.className = 'px-2 py-0.5 text-[11px] font-semibold rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30 transition';
+      }
+    }
+
+    function shuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function renderCardBackHTML(item, presetKey, count) {
+      if (presetKey === 'poker') {
+        const rankSize = count === 24 ? 'text-xs sm:text-sm' : 'text-sm sm:text-base';
+        const centerSuitSize = count === 24 ? 'text-lg sm:text-2xl' : 'text-2xl sm:text-3xl';
+        return `
+          <div class="relative w-full h-full flex items-center justify-center ${item.color} font-serif font-bold">
+            <div class="absolute top-1 left-1.5 flex flex-col items-center leading-none">
+              <span class="${rankSize}">${item.rank}</span>
+              <span class="text-[10px] sm:text-xs">${item.suit === 'JOKER' ? '🃏' : item.suit}</span>
+            </div>
+            <span class="${centerSuitSize} leading-none">${item.suit === 'JOKER' ? '🃏' : item.suit}</span>
+            <div class="absolute bottom-1 right-1.5 flex flex-col items-center leading-none rotate-180">
+              <span class="${rankSize}">${item.rank}</span>
+              <span class="text-[10px] sm:text-xs">${item.suit === 'JOKER' ? '🃏' : item.suit}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      if (presetKey === 'mahjong') {
+        const topSize = count === 24 ? 'text-[10px] sm:text-xs' : 'text-xs sm:text-sm';
+        const mainSize = count === 24 ? 'text-lg sm:text-2xl' : 'text-xl sm:text-3xl';
+        const frameClass = item.frame ? 'border-2 border-blue-600 rounded px-1.5 py-0.5' : '';
+        return `
+          <div class="w-full h-full flex flex-col items-center justify-center font-serif font-extrabold leading-none gap-0.5">
+            <span class="${topSize} ${item.subColor}">${item.top}</span>
+            <span class="${mainSize} ${item.color} ${frameClass}">${item.main}</span>
+          </div>
+        `;
+      }
+
+      // 預設 Emoji 圖形（動物 / 美食 / 交通太空）
+      const emojiSizeClass = count === 24 ? 'text-xl sm:text-2xl' : (count === 16 ? 'text-2xl sm:text-3xl' : 'text-2xl sm:text-4xl');
+      return `<span class="${emojiSizeClass} leading-none">${item.icon}</span>`;
+    }
+
+    function initGame(count = cardCount, presetKey = currentPresetKey) {
+      cardCount = count;
+      currentPresetKey = presetKey;
+      stopTimer();
+      gameStarted = false;
+      isPaused = false;
+      secondsElapsed = 0;
+      moves = 0;
+      matchedPairs = 0;
+      flippedCards = [];
+      isLocked = false;
+
+      // 重設暫停按鈕與遮罩狀態
+      pauseOverlay.classList.add('hidden');
+      pauseOverlay.classList.remove('flex');
+      iconPause.className = 'fa-solid fa-pause mr-0.5';
+      labelPause.textContent = '暫停';
+      btnPause.className = 'px-2 py-0.5 text-[11px] font-semibold rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 hover:bg-sky-500/30 transition';
+
+      const totalPairs = cardCount / 2;
+      statMoves.textContent = '0';
+      statMatches.textContent = `0/${totalPairs}`;
+      statTime.textContent = '00:00';
+      winModal.classList.add('hidden');
+      winModal.classList.remove('flex');
+
+      gameBoard.className = `mode-${cardCount}`;
+
+      const preset = CARD_PRESETS[currentPresetKey] || CARD_PRESETS.animals;
+      const selectedItems = shuffle(preset.items).slice(0, totalPairs);
+      const deck = shuffle([...selectedItems, ...selectedItems]);
+
+      gameBoard.innerHTML = '';
+
+      deck.forEach((item, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card perspective';
+        cardEl.dataset.id = item.id;
+        cardEl.dataset.index = index;
+
+        const backFaceClass = preset.lightFace ? 'card-back light-face' : 'card-back';
+        const backContent = renderCardBackHTML(item, currentPresetKey, cardCount);
+
+        cardEl.innerHTML = `
+          <div class="card-inner">
+            <div class="card-front">
+              <i class="fa-solid fa-question text-sm sm:text-lg opacity-60"></i>
+            </div>
+            <div class="${backFaceClass}">
+              ${backContent}
+            </div>
+          </div>
+        `;
+
+        cardEl.addEventListener('click', () => handleCardClick(cardEl));
+        gameBoard.appendChild(cardEl);
+      });
+    }
+
+    function handleCardClick(cardEl) {
+      if (isLocked || isPaused) return;
+      if (cardEl.classList.contains('flipped') || cardEl.classList.contains('matched')) return;
+
+      startTimer();
+      cardEl.classList.add('flipped');
+      flippedCards.push(cardEl);
+
+      if (flippedCards.length === 2) {
+        moves++;
+        statMoves.textContent = moves;
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      isLocked = true;
+      const [card1, card2] = flippedCards;
+      const isMatch = card1.dataset.id === card2.dataset.id;
+
+      if (isMatch) {
+        setTimeout(() => {
+          card1.classList.add('matched');
+          card2.classList.add('matched');
+          flippedCards = [];
+          isLocked = false;
+          matchedPairs++;
+          const totalPairs = cardCount / 2;
+          statMatches.textContent = `${matchedPairs}/${totalPairs}`;
+
+          if (matchedPairs === totalPairs) {
+            stopTimer();
+            winMoves.textContent = moves;
+            winTime.textContent = formatTime(secondsElapsed);
+            setTimeout(() => {
+              winModal.classList.remove('hidden');
+              winModal.classList.add('flex');
+            }, 350);
+          }
+        }, 280);
+      } else {
+        setTimeout(() => {
+          card1.classList.remove('flipped');
+          card2.classList.remove('flipped');
+          flippedCards = [];
+          isLocked = false;
+        }, 650);
+      }
+    }
+
+    // 切換圖形 Preset 主題
+    document.getElementById('preset-select').addEventListener('change', (e) => {
+      initGame(cardCount, e.target.value);
+    });
+
+    // 暫停 / 繼續計時按鈕
+    btnPause.addEventListener('click', () => {
+      setPausedState(!isPaused);
+    });
+    document.getElementById('btn-resume').addEventListener('click', () => {
+      setPausedState(false);
+    });
+
+    // 切換 12 / 16 / 24 隻牌數按鈕
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.diff-btn').forEach(b => {
+          b.className = 'diff-btn px-2 py-0.5 text-[11px] font-bold rounded bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition';
+        });
+        btn.className = 'diff-btn px-2 py-0.5 text-[11px] font-bold rounded bg-emerald-500/25 text-emerald-400 border border-emerald-500/50 transition';
+        const count = parseInt(btn.dataset.count, 10);
+        initGame(count, currentPresetKey);
+      });
+    });
+
+    // 偷看提示按鈕（短暫翻開所有未配對卡牌 1.2 秒）
+    document.getElementById('btn-peek').addEventListener('click', () => {
+      if (isLocked || isPaused) return;
+      isLocked = true;
+      const allCards = document.querySelectorAll('.card:not(.matched)');
+      allCards.forEach(c => c.classList.add('flipped'));
+      setTimeout(() => {
+        allCards.forEach(c => {
+          if (!flippedCards.includes(c)) c.classList.remove('flipped');
+        });
+        isLocked = false;
+      }, 1200);
+    });
+
+    document.getElementById('btn-restart').addEventListener('click', () => initGame(cardCount, currentPresetKey));
+    document.getElementById('btn-play-again').addEventListener('click', () => initGame(cardCount, currentPresetKey));
+
+    window.onload = () => initGame(12, 'animals');
+  </script>
+</body>
+</html>
