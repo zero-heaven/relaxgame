@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>記憶翻牌挑戰 - 預設隱藏設定與自訂圖庫版</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --panel-bg: #1e293b;
+      --panel-border: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --success: #22c55e;
+      --warning: #f59e0b;
+
+      /* 預設卡片背面變數 */
+      --card-back-bg: linear-gradient(135deg, #1e3a8a, #3b82f6);
+      --card-back-border: #60a5fa;
+      --card-pattern-image: radial-gradient(rgba(255, 255, 255, 0.2) 2px, transparent 2px);
+      --card-pattern-size: 16px 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 16px 32px;
+      transition: padding 0.3s ease;
+    }
+
+    /* 頂部標題與狀態列 */
+    .top-bar {
+      width: 100%;
+      max-width: 1060px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      background: var(--panel-bg);
+      padding: 10px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    }
+
+    .title-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .title-area h1 {
+      font-size: 1.35rem;
+      letter-spacing: 0.5px;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .save-badge {
+      font-size: 0.75rem;
+      color: var(--success);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .save-badge.visible {
+      opacity: 1;
+    }
+
+    .stats-bar {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    .stats-bar span strong {
+      color: var(--accent);
+      font-size: 1.08rem;
+    }
+
+    /* ===== 可收合的完整設定面板 ===== */
+    .control-panel-wrapper {
+      width: 100%;
+      max-width: 1060px;
+      overflow: hidden;
+      transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease, margin-bottom 0.3s ease;
+      max-height: 600px;
+      opacity: 1;
+      margin-bottom: 12px;
+    }
+
+    .control-panel-wrapper.collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin-bottom: 0;
+      pointer-events: none;
+    }
+
+    .control-panel {
+      width: 100%;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+    }
+
+    .control-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      justify-content: space-between;
+    }
+
+    .control-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-group label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    select, button {
+      background: #0f172a;
+      color: var(--text-main);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    select:hover, button:hover {
+      border-color: var(--accent);
+    }
+
+    button.primary-btn {
+      background: var(--accent);
+      color: #0f172a;
+      font-weight: 700;
+      border: none;
+    }
+
+    button.primary-btn:hover {
+      background: var(--accent-hover);
+      color: #fff;
+    }
+
+    button.warning-btn {
+      background: var(--warning);
+      color: #0f172a;
+      font-weight: 700;
+      border: none;
+    }
+
+    button.warning-btn:hover {
+      background: #d97706;
+      color: #fff;
+    }
+
+    button.music-quick-btn {
+      background: #8b5cf6;
+      color: #ffffff;
+      font-weight: 700;
+      border: none;
+    }
+
+    button.music-quick-btn:hover {
+      background: #7c3aed;
+    }
+
+    button.toggle-panel-btn {
+      background: #334155;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      font-weight: 600;
+    }
+
+    button.toggle-panel-btn:hover {
+      background: #475569;
+      border-color: var(--accent);
+    }
+
+    /* 顏色選擇圓點 */
+    .color-swatches {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .swatch:hover {
+      transform: scale(1.12);
+    }
+
+    .swatch.active {
+      border-color: #ffffff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.7);
+      transform: scale(1.12);
+    }
+
+    .music-bar {
+      border-top: 1px solid var(--panel-border);
+      padding-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .file-upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #334155;
+      color: #f8fafc;
+      padding: 7px 13px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #475569;
+      transition: background 0.2s;
+    }
+
+    .file-upload-btn:hover {
+      background: #475569;
+    }
+
+    #folderInput {
+      display: none;
+    }
+
+    .music-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+
+    #trackSelect {
+      max-width: 200px;
+      text-overflow: ellipsis;
+    }
+
+    .volume-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    input[type="range"] {
+      width: 75px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* ===== 卡牌遊戲正上方的獨立快捷控制列 ===== */
+    .game-action-bar {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding: 8px 16px;
+      background: rgba(30, 41, 59, 0.78);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      transition: max-width 0.35s ease;
+    }
+
+    body.panel-hidden .game-action-bar {
+      max-width: 1060px;
+    }
+
+    .game-action-bar button {
+      padding: 8px 18px;
+      font-size: 0.94rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ===== 卡牌網格區 ===== */
+    .board-container {
+      position: relative;
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      justify-content: center;
+      flex: 1;
+      align-items: center;
+      transition: max-width 0.35s ease;
+    }
+
+    body.panel-hidden .board-container {
+      max-width: 1060px;
+    }
+
+    .board {
+      display: grid;
+      gap: 14px;
+      width: 100%;
+      perspective: 1000px;
+      transition: max-width 0.35s ease, gap 0.35s ease;
+    }
+
+    .board.grid-4 { grid-template-columns: repeat(4, 1fr); max-width: 640px; }
+    .board.grid-5 { grid-template-columns: repeat(5, 1fr); max-width: 760px; }
+    .board.grid-6 { grid-template-columns: repeat(6, 1fr); max-width: 860px; }
+
+    body.panel-hidden .board { gap: 18px; }
+    body.panel-hidden .board.grid-4 { max-width: 780px; }
+    body.panel-hidden .board.grid-5 { max-width: 920px; }
+    body.panel-hidden .board.grid-6 { max-width: 1040px; }
+
+    /* 暫停遮罩 */
+    .pause-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(6px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      border: 2px dashed rgba(245, 158, 11, 0.55);
+      z-index: 10;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .pause-overlay:hover {
+      background: rgba(15, 23, 42, 0.82);
+      border-color: var(--success);
+    }
+
+    .pause-overlay.show {
+      display: flex;
+    }
+
+    .pause-overlay h3 {
+      font-size: 1.9rem;
+      color: var(--warning);
+      margin-bottom: 10px;
+    }
+
+    .pause-overlay p {
+      color: var(--text-main);
+      font-size: 1.02rem;
+      background: rgba(51, 65, 85, 0.8);
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid #475569;
+    }
+
+    .card {
+      aspect-ratio: 3 / 4;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card.matched {
+      transform: rotateY(180deg) scale(0.96);
+      cursor: default;
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-back {
+      background-color: #1e3a8a;
+      background-image: var(--card-pattern-image), var(--card-back-bg);
+      background-size: var(--card-pattern-size), cover;
+      background-position: center;
+      border: 2px solid var(--card-back-border);
+      overflow: hidden;
+    }
+
+    .card-back::after {
+      content: attr(data-emblem);
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      opacity: 0.35;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    }
+
+    .card-front {
+      background: linear-gradient(145deg, #ffffff, #f1f5f9);
+      color: #0f172a;
+      transform: rotateY(180deg);
+      font-size: clamp(2.2rem, 5vw, 3.8rem);
+      border: 2px solid #cbd5e1;
+      overflow: hidden;
+    }
+
+    .card.matched .card-front {
+      background: linear-gradient(145deg, #dcfce7, #bbf7d0);
+      border-color: var(--success);
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+    }
+
+    /* 擬真啤牌排版 */
+    .poker-card {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Georgia", "Times New Roman", serif;
+    }
+
+    .poker-card.red { color: #dc2626; }
+    .poker-card.black { color: #111827; }
+
+    .poker-corner {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1;
+      font-weight: 800;
+    }
+
+    .poker-corner.top-left { top: 8px; left: 9px; }
+    .poker-corner.bottom-right { bottom: 8px; right: 9px; transform: rotate(180deg); }
+
+    .poker-rank { font-size: clamp(1rem, 2.2vw, 1.45rem); letter-spacing: -0.5px; }
+    .poker-mini-suit { font-size: clamp(0.9rem, 2vw, 1.3rem); margin-top: 1px; }
+    .poker-center-suit { font-size: clamp(2.3rem, 5.4vw, 4rem); filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.12)); }
+
+    /* 麻雀加大排版 */
+    .mahjong-tile {
+      font-size: clamp(3.2rem, 8vw, 5.6rem);
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      font-family: "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.22));
+      transform: scale(1.14);
+    }
+
+    /* 勝利彈窗 */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.show { display: flex; }
+
+    .modal-box {
+      background: var(--panel-bg);
+      border: 1px solid var(--accent);
+      border-radius: 16px;
+      padding: 28px 36px;
+      text-align: center;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-box h2 { font-size: 1.6rem; color: var(--success); margin-bottom: 12px; }
+    .modal-box p { color: var(--text-main); margin-bottom: 20px; line-height: 1.6; }
+
+    @media (max-width: 760px) {
+      .top-bar { flex-direction: column; align-items: stretch; }
+      .stats-bar { justify-content: space-between; }
+      .control-row, .music-bar { flex-direction: column; align-items: stretch; }
+      .music-controls { justify-content: flex-start; }
+      .poker-corner.top-left { top: 4px; left: 5px; }
+      .poker-corner.bottom-right { bottom: 4px; right: 5px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 頂部標題與計分狀態列 -->
+  <header class="top-bar">
+    <div class="title-area">
+      <h1>🃏 記憶翻牌挑戰</h1>
+      <span id="saveBadge" class="save-badge">✓ 已自動儲存</span>
+    </div>
+
+    <div class="stats-bar">
+      <span>步數：<strong id="movesCount">0</strong></span>
+      <span>進度：<strong id="matchesCount">0 / 8</strong></span>
+      <span>時間：<strong id="timerText">00:00</strong></span>
+    </div>
+  </header>
+
+  <!-- 可收合的完整設定面板 -->
+  <div class="control-panel-wrapper" id="controlPanelWrapper">
+    <section class="control-panel">
+      <!-- 第一列：卡片數量、圖庫類別、背面顏色、背面圖案 -->
+      <div class="control-row">
+        <div class="control-group">
+          <label for="cardCountSelect">數量：</label>
+          <select id="cardCountSelect">
+            <option value="12">12 張 (4×3)</option>
+            <option value="16" selected>16 張 (4×4 預設)</option>
+            <option value="20">20 張 (5×4)</option>
+            <option value="24">24 張 (6×4)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="categorySelect">圖庫類別：</label>
+          <select id="categorySelect">
+            <option value="poker">♠ 經典啤牌 (擬真雙向)</option>
+            <option value="mahjong">🀄 傳統麻雀 (加大牌面)</option>
+            <option value="animal">🦊 靈動動物</option>
+            <option value="symbols" selected>🚀 趣味綜合</option>
+            <!-- 💡 你可以在這裡加入更多自訂圖庫選項，例如： -->
+            <!-- <option value="food">🍔 美味食物</option> -->
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>背面顏色：</label>
+          <div class="color-swatches" id="colorSwatches"></div>
+        </div>
+
+        <div class="control-group">
+          <label for="patternSelect">背面圖案：</label>
+          <select id="patternSelect"></select>
+        </div>
+      </div>
+
+      <!-- 第二列：背景音樂資料夾上傳與播放器詳細設定 -->
+      <div class="music-bar">
+        <div class="control-group">
+          <label class="file-upload-btn" for="folderInput">
+            📂 選擇 MP3 資料夾
+          </label>
+          <input type="file" id="folderInput" webkitdirectory directory multiple accept="audio/mp3,audio/*" />
+          <span id="folderStatus" style="font-size: 0.85rem; color: var(--text-muted);">未載入 MP3（可開啟機械音樂）</span>
+        </div>
+
+        <div class="music-controls">
+          <button id="synthBgmToggle" class="primary-btn" style="padding: 6px 12px; font-size: 0.86rem;">🤖 機械音樂</button>
+          <select id="trackSelect" disabled>
+            <option value="">-- MP3 播放清單 --</option>
+          </select>
+          <button id="prevTrackBtn" title="上一首" disabled>⏮</button>
+          <button id="nextTrackBtn" title="下一首" disabled>⏭</button>
+          <select id="loopModeSelect" title="循環模式">
+            <option value="all" selected>🔁 全部循環</option>
+            <option value="single">🔂 單曲循環</option>
+          </select>
+          <div class="volume-box">
+            <span>🔊</span>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.6" />
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- 卡牌正上方的快捷控制列（「顯示/隱藏設定」按鈕已移至播放音樂按鈕的左邊） -->
+  <div class="game-action-bar">
+    <button id="restartBtn" class="primary-btn">🔄 重新開始</button>
+    <button id="pauseBtn" class="warning-btn">⏸ 暫停</button>
+    <button id="togglePanelBtn" class="toggle-panel-btn">⚙️ 顯示設定</button>
+    <button id="playPauseBtn" class="music-quick-btn" title="播放或暫停背景音樂">▶ 播放音樂</button>
+  </div>
+
+  <!-- 卡牌區域與可點擊繼續的暫停遮罩 -->
+  <div class="board-container">
+    <main class="board grid-4" id="gameBoard"></main>
+    <div class="pause-overlay" id="pauseOverlay" title="點擊此畫面繼續遊戲">
+      <h3>⏸ 遊戲已暫停</h3>
+      <p>👆 點擊此畫面任意處或上方「▶ 繼續」恢復挑戰</p>
+    </div>
+  </div>
+
+  <!-- 過關彈窗 -->
+  <div class="modal-overlay" id="winModal">
+    <div class="modal-box">
+      <h2>🎉 恭喜完成配對！</h2>
+      <p id="winSummary"></p>
+      <button id="playAgainBtn" class="primary-btn" style="width: 100%; padding: 10px;">再玩一局</button>
+    </div>
+  </div>
+
+  <audio id="bgmPlayer"></audio>
+
+  <script>
+    // ================= 1. 本地設定儲存 (localStorage) - 預設 panelCollapsed 為 true =================
+    const STORAGE_KEY = "memory_card_game_settings_v5";
+    const defaultSettings = {
+      cardCount: 16,
+      category: "symbols",
+      colorIndex: 0,
+      patternIndex: 0,
+      loopMode: "all",
+      volume: 0.6,
+      panelCollapsed: true // 👈 預設設為隱藏
+    };
+
+    let savedSettings = { ...defaultSettings };
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        savedSettings = { ...defaultSettings, ...JSON.parse(raw) };
+      }
+    } catch (e) {
+      console.warn("讀取本機設定失敗，使用預設值", e);
+    }
+
+    const saveBadge = document.getElementById("saveBadge");
+    let badgeTimeout = null;
+
+    function saveSettingsToStorage(partial) {
+      savedSettings = { ...savedSettings, ...partial };
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSettings));
+        saveBadge.classList.add("visible");
+        clearTimeout(badgeTimeout);
+        badgeTimeout = setTimeout(() => saveBadge.classList.remove("visible"), 1400);
+      } catch (e) {
+        console.warn("儲存設定失敗", e);
+      }
+    }
+
+    // ================= 2. 多元圖庫分類資料庫（可在這裡自行加入更多組別） =================
+    const POKER_DECK_DATA = [
+      { id: "spade-A", suit: "♠", rank: "A", color: "black" },
+      { id: "heart-K", suit: "♥", rank: "K", color: "red" },
+      { id: "diamond-Q", suit: "♦", rank: "Q", color: "red" },
+      { id: "club-J", suit: "♣", rank: "J", color: "black" },
+      { id: "heart-A", suit: "♥", rank: "A", color: "red" },
+      { id: "spade-K", suit: "♠", rank: "K", color: "black" },
+      { id: "club-Q", suit: "♣", rank: "Q", color: "black" },
+      { id: "diamond-J", suit: "♦", rank: "J", color: "red" },
+      { id: "spade-10", suit: "♠", rank: "10", color: "black" },
+      { id: "heart-9", suit: "♥", rank: "9", color: "red" },
+      { id: "diamond-8", suit: "♦", rank: "8", color: "red" },
+      { id: "club-7", suit: "♣", rank: "7", color: "black" }
+    ];
+
+    const CARD_CATEGORIES = {
+      poker: POKER_DECK_DATA,
+      mahjong: ["🀇", "🀏", "🀐", "🀙", "🀡", "🀀", "🀁", "🀂", "🀃", "🀄", "🀅", "🀆"],
+      animal: ["🦊", "🐼", "🦁", "🐯", "🐰", "🐨", "🐶", "🐱", "🐵", "🐧", "🦄", "🐸"],
+      symbols: ["🚀", "🎸", "🍕", "💎", "🌈", "🍀", "🎯", "🐳", "🍩", "⚡", "🔥", "🔮"],
+      // 💡 可以在這裡新增更多自訂圖形組別（建議至少準備 12 個圖示）
+      // food: ["🍎", "🍌", "🍇", "🍉", "🍓", "🍒", "🍑", "🍍", "🥭", "🥝", "🍔", "🍣"]
+    };
+
+    const CARD_COLORS = [
+      { name: "深海靛藍", bg: "linear-gradient(135deg, #1e3a8a, #2563eb)", border: "#60a5fa", swatch: "#2563eb" },
+      { name: "翡翠森綠", bg: "linear-gradient(135deg, #065f46, #10b981)", border: "#34d399", swatch: "#10b981" },
+      { name: "玫瑰緋紅", bg: "linear-gradient(135deg, #881337, #e11d48)", border: "#fb7185", swatch: "#e11d48" },
+      { name: "落日琥珀", bg: "linear-gradient(135deg, #92400e, #f59e0b)", border: "#fbbf24", swatch: "#f59e0b" },
+      { name: "極光紫羅蘭", bg: "linear-gradient(135deg, #4c1d95, #8b5cf6)", border: "#a78bfa", swatch: "#8b5cf6" },
+      { name: "賽博青藍", bg: "linear-gradient(135deg, #155e75, #06b6d4)", border: "#22d3ee", swatch: "#06b6d4" },
+      { name: "流光黑金", bg: "linear-gradient(135deg, #18181b, #3f3f46)", border: "#eab308", swatch: "#27272a" },
+      { name: "櫻花粉晶", bg: "linear-gradient(135deg, #831843, #ec4899)", border: "#f472b6", swatch: "#ec4899" }
+    ];
+
+    const CARD_PATTERNS = [
+      { name: "經典菱格", emblem: "❖", cssImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.12) 0, rgba(255,255,255,0.12) 2px, transparent 2px, transparent 10px), repeating-linear-gradient(-45deg, rgba(255,255,255,0.12) 0, rgba(255,255,255,0.12) 2px, transparent 2px, transparent 10px)", cssSize: "20px 20px" },
+      { name: "神秘星辰", emblem: "✦", cssImage: "radial-gradient(rgba(255,255,255,0.28) 1.5px, transparent 1.5px), radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)", cssSize: "22px 22px" },
+      { name: "六角蜂巢", emblem: "⬡", cssImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.14'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`, cssSize: "28px 49px" },
+      { name: "日系波浪", emblem: "🌊", cssImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'%3E%3Cpath d='M0 10 Q 10 0, 20 10 T 40 10' fill='none' stroke='%23ffffff' stroke-opacity='0.18' stroke-width='2'/%3E%3C/svg%3E")`, cssSize: "40px 20px" },
+      { name: "賽博電路", emblem: "⚡", cssImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M0 16h10l4-4h8l4 4h6M16 0v10l-4 4v8l4 4v6' fill='none' stroke='%23ffffff' stroke-opacity='0.15' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='2.5' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E")`, cssSize: "32px 32px" },
+      { name: "幸運四葉草", emblem: "🍀", cssImage: "radial-gradient(circle at 25% 25%, rgba(255,255,255,0.16) 4px, transparent 5px), radial-gradient(circle at 75% 75%, rgba(255,255,255,0.16) 4px, transparent 5px)", cssSize: "26px 26px" },
+      { name: "斜紋緞帶", emblem: "♛", cssImage: "repeating-linear-gradient(135deg, rgba(255,255,255,0.15) 0px, rgba(255,255,255,0.15) 6px, transparent 6px, transparent 14px)", cssSize: "20px 20px" },
+      { name: "純淨極簡", emblem: "?", cssImage: "none", cssSize: "auto" }
+    ];
+
+    // DOM 元素
+    const gameBoard = document.getElementById("gameBoard");
+    const controlPanelWrapper = document.getElementById("controlPanelWrapper");
+    const togglePanelBtn = document.getElementById("togglePanelBtn");
+    const cardCountSelect = document.getElementById("cardCountSelect");
+    const categorySelect = document.getElementById("categorySelect");
+    const restartBtn = document.getElementById("restartBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const pauseOverlay = document.getElementById("pauseOverlay");
+    const colorSwatches = document.getElementById("colorSwatches");
+    const patternSelect = document.getElementById("patternSelect");
+    const movesCountEl = document.getElementById("movesCount");
+    const matchesCountEl = document.getElementById("matchesCount");
+    const timerTextEl = document.getElementById("timerText");
+    const winModal = document.getElementById("winModal");
+    const winSummary = document.getElementById("winSummary");
+    const playAgainBtn = document.getElementById("playAgainBtn");
+
+    // 音樂與機械 BGM DOM
+    const folderInput = document.getElementById("folderInput");
+    const folderStatus = document.getElementById("folderStatus");
+    const synthBgmToggle = document.getElementById("synthBgmToggle");
+    const trackSelect = document.getElementById("trackSelect");
+    const prevTrackBtn = document.getElementById("prevTrackBtn");
+    const playPauseBtn = document.getElementById("playPauseBtn");
+    const nextTrackBtn = document.getElementById("nextTrackBtn");
+    const loopModeSelect = document.getElementById("loopModeSelect");
+    const volumeSlider = document.getElementById("volumeSlider");
+    const bgmPlayer = document.getElementById("bgmPlayer");
+
+    // 遊戲狀態
+    let totalCards = savedSettings.cardCount;
+    let flippedCards = [];
+    let matchedPairs = 0;
+    let moves = 0;
+    let lockBoard = false;
+    let isPaused = false;
+    let timerInterval = null;
+    let secondsElapsed = 0;
+    let gameStarted = false;
+    let currentEmblem = CARD_PATTERNS[0].emblem;
+
+    // MP3 清單狀態
+    let playlist = [];
+    let currentTrackIndex = 0;
+
+    // Web Audio API 機械音樂引擎狀態
+    let audioCtx = null;
+    let masterGainNode = null;
+    let synthTimer = null;
+    let isSynthPlaying = false;
+
+    // ================= 3. 設定面板收合 / 展開控制 =================
+    function applyPanelVisibility(collapsed) {
+      if (collapsed) {
+        controlPanelWrapper.classList.add("collapsed");
+        document.body.classList.add("panel-hidden");
+        togglePanelBtn.textContent = "⚙️ 顯示設定";
+      } else {
+        controlPanelWrapper.classList.remove("collapsed");
+        document.body.classList.remove("panel-hidden");
+        togglePanelBtn.textContent = "⚙️ 隱藏設定";
+      }
+    }
+
+    togglePanelBtn.addEventListener("click", () => {
+      const nextState = !controlPanelWrapper.classList.contains("collapsed");
+      applyPanelVisibility(nextState);
+      saveSettingsToStorage({ panelCollapsed: nextState });
+    });
+
+    function restoreSavedUI() {
+      cardCountSelect.value = String(savedSettings.cardCount);
+      categorySelect.value = savedSettings.category;
+      loopModeSelect.value = savedSettings.loopMode;
+      volumeSlider.value = String(savedSettings.volume);
+      bgmPlayer.volume = Number(savedSettings.volume);
+      applyPanelVisibility(Boolean(savedSettings.panelCollapsed));
+    }
+
+    function initAppearanceControls() {
+      const activeColorIdx = Math.min(savedSettings.colorIndex || 0, CARD_COLORS.length - 1);
+      const activePatternIdx = Math.min(savedSettings.patternIndex || 0, CARD_PATTERNS.length - 1);
+
+      CARD_COLORS.forEach((color, index) => {
+        const btn = document.createElement("button");
+        btn.className = "swatch" + (index === activeColorIdx ? " active" : "");
+        btn.style.background = color.swatch;
+        btn.title = color.name;
+        btn.type = "button";
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".swatch").forEach(s => s.classList.remove("active"));
+          btn.classList.add("active");
+          applyCardColor(color);
+          saveSettingsToStorage({ colorIndex: index });
+        });
+        colorSwatches.appendChild(btn);
+      });
+
+      CARD_PATTERNS.forEach((pattern, index) => {
+        const opt = document.createElement("option");
+        opt.value = index;
+        opt.textContent = pattern.name;
+        patternSelect.appendChild(opt);
+      });
+      patternSelect.value = String(activePatternIdx);
+
+      patternSelect.addEventListener("change", (e) => {
+        const idx = Number(e.target.value);
+        applyCardPattern(CARD_PATTERNS[idx]);
+        saveSettingsToStorage({ patternIndex: idx });
+      });
+
+      applyCardColor(CARD_COLORS[activeColorIdx]);
+      applyCardPattern(CARD_PATTERNS[activePatternIdx]);
+    }
+
+    function applyCardColor(color) {
+      document.documentElement.style.setProperty("--card-back-bg", color.bg);
+      document.documentElement.style.setProperty("--card-back-border", color.border);
+    }
+
+    function applyCardPattern(pattern) {
+      document.documentElement.style.setProperty("--card-pattern-image", pattern.cssImage);
+      document.documentElement.style.setProperty("--card-pattern-size", pattern.cssSize);
+      currentEmblem = pattern.emblem;
+      document.querySelectorAll(".card-back").forEach(el => {
+        el.setAttribute("data-emblem", currentEmblem);
+      });
+    }
+
+    function shuffle(array) {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // 初始化遊戲
+    function initGame() {
+      totalCards = Number(cardCountSelect.value);
+      const pairCount = totalCards / 2;
+
+      flippedCards = [];
+      matchedPairs = 0;
+      moves = 0;
+      lockBoard = false;
+      isPaused = false;
+      gameStarted = false;
+      secondsElapsed = 0;
+      clearInterval(timerInterval);
+
+      movesCountEl.textContent = "0";
+      matchesCountEl.textContent = `0 / ${pairCount}`;
+      timerTextEl.textContent = "00:00";
+      winModal.classList.remove("show");
+      pauseOverlay.classList.remove("show");
+      pauseBtn.textContent = "⏸ 暫停";
+      pauseBtn.style.background = "var(--warning)";
+
+      gameBoard.className = "board";
+      if (totalCards === 20) gameBoard.classList.add("grid-5");
+      else if (totalCards === 24) gameBoard.classList.add("grid-6");
+      else gameBoard.classList.add("grid-4");
+
+      const catKey = categorySelect.value;
+      const iconsPool = CARD_CATEGORIES[catKey] || CARD_CATEGORIES.symbols;
+      const selectedItems = iconsPool.slice(0, pairCount);
+      const deck = shuffle([...selectedItems, ...selectedItems]);
+
+      gameBoard.innerHTML = "";
+      deck.forEach((item) => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const backFace = document.createElement("div");
+        backFace.className = "card-face card-back";
+        backFace.setAttribute("data-emblem", currentEmblem);
+
+        const frontFace = document.createElement("div");
+        frontFace.className = "card-face card-front";
+
+        if (catKey === "poker") {
+          card.dataset.matchId = item.id;
+          frontFace.innerHTML = `
+            <div class="poker-card ${item.color}">
+              <div class="poker-corner top-left">
+                <span class="poker-rank">${item.rank}</span>
+                <span class="poker-mini-suit">${item.suit}</span>
+              </div>
+              <div class="poker-center-suit">${item.suit}</div>
+              <div class="poker-corner bottom-right">
+                <span class="poker-rank">${item.rank}</span>
+                <span class="poker-mini-suit">${item.suit}</span>
+              </div>
+            </div>
+          `;
+        } else if (catKey === "mahjong") {
+          card.dataset.matchId = item;
+          frontFace.innerHTML = `<div class="mahjong-tile">${item}</div>`;
+        } else {
+          card.dataset.matchId = item;
+          frontFace.textContent = item;
+        }
+
+        card.appendChild(backFace);
+        card.appendChild(frontFace);
+        card.addEventListener("click", () => handleCardClick(card));
+        gameBoard.appendChild(card);
+      });
+    }
+
+    function startTimer() {
+      if (gameStarted || isPaused) return;
+      gameStarted = true;
+      timerInterval = setInterval(() => {
+        if (!isPaused) {
+          secondsElapsed++;
+          const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, "0");
+          const secs = String(secondsElapsed % 60).padStart(2, "0");
+          timerTextEl.textContent = `${mins}:${secs}`;
+        }
+      }, 1000);
+    }
+
+    function setPausedState(paused) {
+      if (!gameStarted || matchedPairs === totalCards / 2) return;
+      isPaused = paused;
+      if (isPaused) {
+        pauseOverlay.classList.add("show");
+        pauseBtn.textContent = "▶ 繼續";
+        pauseBtn.style.background = "var(--success)";
+      } else {
+        pauseOverlay.classList.remove("show");
+        pauseBtn.textContent = "⏸ 暫停";
+        pauseBtn.style.background = "var(--warning)";
+      }
+    }
+
+    function togglePause() {
+      setPausedState(!isPaused);
+    }
+
+    pauseOverlay.addEventListener("click", () => {
+      if (isPaused) {
+        setPausedState(false);
+      }
+    });
+
+    function handleCardClick(card) {
+      if (lockBoard || isPaused) return;
+      if (card.classList.contains("flipped") || card.classList.contains("matched")) return;
+
+      startTimer();
+      card.classList.add("flipped");
+      flippedCards.push(card);
+
+      if (flippedCards.length === 2) {
+        moves++;
+        movesCountEl.textContent = moves;
+        checkMatch();
+      }
+    }
+
+    function checkMatch() {
+      const [card1, card2] = flippedCards;
+      const isMatch = card1.dataset.matchId === card2.dataset.matchId;
+
+      if (isMatch) {
+        card1.classList.add("matched");
+        card2.classList.add("matched");
+        flippedCards = [];
+        matchedPairs++;
+        const pairCount = totalCards / 2;
+        matchesCountEl.textContent = `${matchedPairs} / ${pairCount}`;
+
+        if (matchedPairs === pairCount) {
+          clearInterval(timerInterval);
+          setTimeout(() => {
+            winSummary.innerHTML = `卡片數量：<strong>${totalCards} 張</strong><br>總翻牌步數：<strong>${moves} 步</strong><br>通關時間：<strong>${timerTextEl.textContent}</strong>`;
+            winModal.classList.add("show");
+          }, 450);
+        }
+      } else {
+        lockBoard = true;
+        setTimeout(() => {
+          card1.classList.remove("flipped");
+          card2.classList.remove("flipped");
+          flippedCards = [];
+          lockBoard = false;
+        }, 800);
+      }
+    }
+
+    // ================= 4. 音樂與機械音樂控制 =================
+    function updateMusicButtonUI(isPlaying) {
+      if (isPlaying) {
+        playPauseBtn.textContent = "⏸ 暫停音樂";
+        playPauseBtn.style.background = "var(--success)";
+        playPauseBtn.style.color = "#0f172a";
+      } else {
+        playPauseBtn.textContent = "▶ 播放音樂";
+        playPauseBtn.style.background = "#8b5cf6";
+        playPauseBtn.style.color = "#ffffff";
+      }
+    }
+
+    folderInput.addEventListener("change", (e) => {
+      const files = Array.from(e.target.files);
+      const mp3Files = files
+        .filter(f => f.name.toLowerCase().endsWith(".mp3"))
+        .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+      playlist.forEach(item => URL.revokeObjectURL(item.url));
+      playlist = [];
+
+      if (mp3Files.length === 0) {
+        folderStatus.textContent = "此資料夾無 MP3（可使用機械音樂）";
+        trackSelect.innerHTML = '<option value="">-- 無可用 MP3 --</option>';
+        trackSelect.disabled = true;
+        prevTrackBtn.disabled = true;
+        nextTrackBtn.disabled = true;
+        return;
+      }
+
+      if (isSynthPlaying) stopSynthBgm(false);
+
+      playlist = mp3Files.map(file => ({
+        name: file.name.replace(/\.mp3$/i, ""),
+        url: URL.createObjectURL(file)
+      }));
+
+      folderStatus.textContent = `已載入 ${playlist.length} 首 MP3`;
+      trackSelect.innerHTML = "";
+      playlist.forEach((track, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        opt.textContent = `${idx + 1}. ${track.name}`;
+        trackSelect.appendChild(opt);
+      });
+
+      trackSelect.disabled = false;
+      prevTrackBtn.disabled = false;
+      nextTrackBtn.disabled = false;
+
+      loadAndPlayTrack(0);
+    });
+
+    function loadAndPlayTrack(index) {
+      if (playlist.length === 0) return;
+      if (isSynthPlaying) stopSynthBgm(false);
+      currentTrackIndex = (index + playlist.length) % playlist.length;
+      trackSelect.value = currentTrackIndex;
+      bgmPlayer.src = playlist[currentTrackIndex].url;
+      bgmPlayer.volume = Number(volumeSlider.value);
+      bgmPlayer.play().then(() => {
+        updateMusicButtonUI(true);
+      }).catch(() => {
+        updateMusicButtonUI(false);
+      });
+    }
+
+    trackSelect.addEventListener("change", (e) => loadAndPlayTrack(Number(e.target.value)));
+
+    playPauseBtn.addEventListener("click", () => {
+      if (playlist.length > 0 && bgmPlayer.src) {
+        if (bgmPlayer.paused) {
+          if (isSynthPlaying) stopSynthBgm(false);
+          bgmPlayer.play();
+          updateMusicButtonUI(true);
+        } else {
+          bgmPlayer.pause();
+          updateMusicButtonUI(false);
+        }
+      } else {
+        toggleSynthBgm();
+      }
+    });
+
+    prevTrackBtn.addEventListener("click", () => loadAndPlayTrack(currentTrackIndex - 1));
+    nextTrackBtn.addEventListener("click", () => loadAndPlayTrack(currentTrackIndex + 1));
+
+    loopModeSelect.addEventListener("change", (e) => {
+      saveSettingsToStorage({ loopMode: e.target.value });
+    });
+
+    volumeSlider.addEventListener("input", (e) => {
+      const vol = Number(e.target.value);
+      bgmPlayer.volume = vol;
+      if (masterGainNode && audioCtx) {
+        masterGainNode.gain.setValueAtTime(vol * 0.35, audioCtx.currentTime);
+      }
+      saveSettingsToStorage({ volume: vol });
+    });
+
+    bgmPlayer.addEventListener("ended", () => {
+      if (playlist.length === 0) return;
+      if (loopModeSelect.value === "single") {
+        bgmPlayer.currentTime = 0;
+        bgmPlayer.play();
+      } else {
+        loadAndPlayTrack(currentTrackIndex + 1);
+      }
+    });
+
+    // ================= 5. 機械音樂合成器 =================
+    function toggleSynthBgm() {
+      if (isSynthPlaying) {
+        stopSynthBgm(true);
+      } else {
+        startSynthBgm();
+      }
+    }
+
+    async function startSynthBgm() {
+      if (!bgmPlayer.paused) {
+        bgmPlayer.pause();
+      }
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        alert("您的瀏覽器不支援 Web Audio 音訊合成");
+        return;
+      }
+
+      if (!audioCtx) {
+        audioCtx = new AudioContextClass();
+      }
+      if (audioCtx.state === "suspended") {
+        await audioCtx.resume();
+      }
+
+      masterGainNode = audioCtx.createGain();
+      const initialVol = Number(volumeSlider.value);
+      masterGainNode.gain.setValueAtTime(initialVol * 0.35, audioCtx.currentTime);
+      masterGainNode.connect(audioCtx.destination);
+
+      isSynthPlaying = true;
+      synthBgmToggle.textContent = "⏹ 停止機械音樂";
+      synthBgmToggle.style.background = "var(--success)";
+      synthBgmToggle.style.color = "#0f172a";
+      updateMusicButtonUI(true);
+
+      const leadSequence = [
+        329.63, 392.00, 493.88, 659.25,
+        587.33, 493.88, 392.00, 329.63,
+        293.66, 349.23, 440.00, 587.33,
+        493.88, 440.00, 392.00, 293.66
+      ];
+      const bassSequence = [
+        110.00, 0, 110.00, 130.81,
+        146.83, 0, 146.83, 164.81,
+        98.00,  0, 98.00,  110.00,
+        130.81, 0, 146.83, 164.81
+      ];
+
+      let step = 0;
+
+      const playStep = () => {
+        if (!isSynthPlaying || !audioCtx) return;
+        const now = audioCtx.currentTime;
+
+        const leadFreq = leadSequence[step % leadSequence.length];
+        if (leadFreq > 0) {
+          const osc = audioCtx.createOscillator();
+          const filter = audioCtx.createBiquadFilter();
+          const env = audioCtx.createGain();
+
+          osc.type = "square";
+          osc.frequency.setValueAtTime(leadFreq, now);
+
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(1400, now);
+          filter.frequency.exponentialRampToValueAtTime(400, now + 0.18);
+
+          env.gain.setValueAtTime(0.001, now);
+          env.gain.linearRampToValueAtTime(0.45, now + 0.015);
+          env.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+
+          osc.connect(filter);
+          filter.connect(env);
+          env.connect(masterGainNode);
+
+          osc.start(now);
+          osc.stop(now + 0.2);
+        }
+
+        const bassFreq = bassSequence[step % bassSequence.length];
+        if (bassFreq > 0) {
+          const bassOsc = audioCtx.createOscillator();
+          const bassEnv = audioCtx.createGain();
+
+          bassOsc.type = "sawtooth";
+          bassOsc.frequency.setValueAtTime(bassFreq, now);
+
+          bassEnv.gain.setValueAtTime(0.001, now);
+          bassEnv.gain.linearRampToValueAtTime(0.55, now + 0.02);
+          bassEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+          bassOsc.connect(bassEnv);
+          bassEnv.connect(masterGainNode);
+
+          bassOsc.start(now);
+          bassOsc.stop(now + 0.23);
+        }
+
+        step++;
+      };
+
+      playStep();
+      synthTimer = setInterval(playStep, 220);
+    }
+
+    function stopSynthBgm(syncQuickBtn = true) {
+      isSynthPlaying = false;
+      if (synthTimer) {
+        clearInterval(synthTimer);
+        synthTimer = null;
+      }
+      if (audioCtx && audioCtx.state !== "closed") {
+        audioCtx.close().catch(() => {});
+        audioCtx = null;
+        masterGainNode = null;
+      }
+      synthBgmToggle.textContent = "🤖 機械音樂";
+      synthBgmToggle.style.background = "var(--accent)";
+      synthBgmToggle.style.color = "#0f172a";
+      if (syncQuickBtn) {
+        updateMusicButtonUI(false);
+      }
+    }
+
+    synthBgmToggle.addEventListener("click", toggleSynthBgm);
+
+    // 綁定控制與儲存事件
+    cardCountSelect.addEventListener("change", (e) => {
+      saveSettingsToStorage({ cardCount: Number(e.target.value) });
+      initGame();
+    });
+
+    categorySelect.addEventListener("change", (e) => {
+      saveSettingsToStorage({ category: e.target.value });
+      initGame();
+    });
+
+    restartBtn.addEventListener("click", initGame);
+    pauseBtn.addEventListener("click", togglePause);
+    playAgainBtn.addEventListener("click", initGame);
+
+    // 啟動初始化流程
+    restoreSavedUI();
+    initAppearanceControls();
+    initGame();
+  </script>
+</body>
+</html>
