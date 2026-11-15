@@ -1,132 +1,174 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
- <head>
-  <title>Playcards All-in-one / Mahjong Solitaire</title>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <META HTTP-EQUIV="Pragma" CONTENT="no_cache">
   <meta name="Description" content="">
   <meta name="Author" content="Kwai-Chuen HO">
-  <link href="" rel="stylesheet" type="text/css">
+  <title>CSS 霓虹發光特效全套組</title>
 <style>
-div.example {
-  background-color: ;
-  padding: 20px;
+  /* 基礎深色背景設定 */
+  body {
+    background-color: #090a0f;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 50px;
+    padding: 50px 20px;
+    margin: 0;
+  }
+
+  /* =========================================
+     1. 顏色變數設定 (自由切換光暈顏色)
+     ========================================= */
+  .neon-pink {
+    --glow-core: #fff;
+    --glow-main: #e60073;
+    --glow-bright: #ff4da6;
+  }
+
+  .neon-blue {
+    --glow-core: #fff;
+    --glow-main: #0088cc;
+    --glow-bright: #00e5ff;
+  }
+
+  .neon-green {
+    --glow-core: #fff;
+    --glow-main: #00b33c;
+    --glow-bright: #39ff14;
+  }
+
+  .neon-gold {
+    --glow-core: #fff;
+    --glow-main: #cc8800;
+    --glow-bright: #ffd700;
+  }
+
+  /* =========================================
+     2. 動畫節奏 1：柔和呼吸發光 (Breathing)
+     ========================================= */
+  .text-glow-pulse {
+    font-size: 40px;
+    font-weight: bold;
+    color: var(--glow-core);
+    animation: pulseGlow 1.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulseGlow {
+    from {
+      text-shadow: 0 0 5px var(--glow-core), 0 0 10px var(--glow-core), 0 0 15px var(--glow-main), 0 0 20px var(--glow-main), 0 0 25px var(--glow-main);
+    }
+    to {
+      text-shadow: 0 0 10px var(--glow-core), 0 0 20px var(--glow-bright), 0 0 30px var(--glow-bright), 0 0 40px var(--glow-bright), 0 0 50px var(--glow-bright);
+    }
+  }
+
+  /* =========================================
+     3. 動畫節奏 2：霓虹燈管閃爍感 (Flicker)
+     ========================================= */
+  .text-glow-flicker {
+    font-size: 40px;
+    font-weight: bold;
+    color: var(--glow-core);
+    text-shadow: 0 0 5px var(--glow-core), 0 0 15px var(--glow-bright), 0 0 30px var(--glow-bright);
+    animation: neonFlicker 3s infinite;
+  }
+
+  @keyframes neonFlicker {
+    0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+      opacity: 1;
+      text-shadow: 0 0 5px var(--glow-core), 0 0 15px var(--glow-bright), 0 0 30px var(--glow-bright), 0 0 45px var(--glow-main);
+    }
+    20%, 24%, 55% {
+      opacity: 0.3;
+      text-shadow: none; /* 模擬瞬間斷電熄滅 */
+    }
+  }
+
+  /* =========================================
+     4. 應用元件 1：發光按鈕 + 滑鼠懸停觸發 (Hover)
+     ========================================= */
+  .neon-btn {
+    background: transparent;
+    color: var(--glow-bright);
+    font-size: 20px;
+    font-weight: bold;
+    padding: 15px 40px;
+    border: 3px solid var(--glow-bright);
+    border-radius: 8px;
+    cursor: pointer;
+    text-shadow: 0 0 8px var(--glow-main);
+    /* inset 代表內發光，讓按鈕更有立體燈管感 */
+    box-shadow: 0 0 10px var(--glow-main), inset 0 0 10px var(--glow-main);
+    transition: all 0.3s ease;
+  }
+
+  /* 滑鼠移過去時才全力發光並填滿底色 */
+  .neon-btn:hover {
+    background-color: var(--glow-bright);
+    color: #090a0f;
+    text-shadow: none;
+    box-shadow: 0 0 20px var(--glow-bright), 0 0 40px var(--glow-bright), 0 0 60px var(--glow-main);
+  }
+
+  /* =========================================
+     5. 應用元件 2：發光外框卡片與圖片 (Box & Image)
+     ========================================= */
+  .neon-card {
+    padding: 30px;
+    border: 2px solid var(--glow-core);
+    border-radius: 15px;
+    text-align: center;
+    max-width: 320px;
+    box-shadow: 0 0 10px var(--glow-core), 0 0 20px var(--glow-main), inset 0 0 15px var(--glow-main);
+  }
+
+  /* 透明背景 PNG 圖片專用的輪廓發光 */
+  .neon-image-glow {
+    width: 100px;
+    height: 100px;
+    /* drop-shadow 會貼合圖片輪廓發光，而非只發光正方形外框 */
+    filter: drop-shadow(0 0 8px var(--glow-bright)) drop-shadow(0 0 16px var(--glow-main));
+  }
+
+/* Targets all links inside the div */
+.link-box a {
+  text-decoration: none; /* No underline by default */
+  color: ;
 }
 
-@media screen and (min-width: 601px) {/* 大於/等於>= */
-  div.example {
-    font-size: 200%;
-  }
+/* Adds underline when mouse hovers over the link */
+.link-box a:hover {
+  text-decoration: none;
 }
+a, a:hover, a:active{text-decoration: none;}
 
-@media screen and (max-width: 600px) {/* 少於/等於 <=*/
-  div.example {
-    font-size: 100%;
-  }
-}
 </style>
-  <style type="text/css">
-<!--
-.qk:link {color: #FCFBEE;text-decoration: none;font-size:}/*Milk,RGB(252,251,238)*/
-.qk:hover {color: #FCFBEE; text-decoration: none;font-size:}
-.qk:visited {color: #FCFBEE; text-decoration: none;font-size:}/*Ivory**/
-za:link {color: #6600FF;text-decoration: none}/*Purple,RGB(102,0,255)*/
-a:hover, a:active {background: red; color: #FCFBEE; text-decoration: none;font-size: 150%;}/*RGB(204,51,255),pink-purple*/
-za:visited (color: #330000;text-decoration: none)/*Brown,RGB(51,0,0)*/
-a {cursor:hand}
-
-body {
-      background-color: #000000;color:#ffffff;
-}
-.glow {
-  font-size: 40px;
-  color: #fff;
-  text-align: center;
-  animation: glow 1s ease-in-out infinite alternate;
-}
-
-@-webkit-keyframes glow {
-  from {
-    text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #e60073, 0 0 200px #e60073, 0 0 250px #e60073, 0 0 30px #e60073, 0 0 35px #e60073;
-  }
-  
-  to {
-    text-shadow: 0 0 10px #fff, 0 0 15px #ff4da6, 0 0 20px #ff4da6, 0 0 25px #ff4da6, 0 0 30px #ff4da6, 0 0 35px #ff4da6, 0 0 40px #ff4da6;
-  }
-}
-.cs1 {color: #FF6347;text-decoration: none;font-size:;}/* 番茄紅Tomato */
-.cs2 {color: #FFA500;text-decoration: none;font-size:}/* 橙Orange */
-.cs3 {color: #1e90ff;text-decoration: none;font-size:}/* 道奇藍DodgerBlue */
-.cs4 {color: #FF0066;text-decoration: none;font-size:}/* 霓虹粉色Neon Pink*/
-.cs5 {color: #3cb371;text-decoration: none;font-size:150%}/* 中海綠色MediumSeaGreen */
-.cs6 {color: #b3d4fc;text-decoration: none;font-size:}/* 哥倫比亞藍Columbia Blue */
-.cs7 {color: #ffff00;text-decoration: none;font-size:}/* 黃Yellow */
-.cs8 {color: #6a5acd;text-decoration: none;font-size:}/* 石板藍SlateBlue */
-.cs9 {color: #7F00FF;text-decoration: none;font-size:}/* 紫色Violet */
-.cs10 {color: ##ccffff;text-decoration: none;font-size:}/* 淺天空藍lightSkyBlue */
-.cs11 {color: #dce6da;text-decoration: none;font-size:}/* 淺灰檸檬綠 */
-.cs12 {color: #808080;text-decoration: none;font-size:}/* 灰 Gray */
-.cs13 {color: #D3D3D3;text-decoration: none;font-size:}/* 淺灰LightGray */
-.cs14 {color: #e60073;text-decoration: none;font-size:150%}/* 你的粉紅Pinking Of You */
-.cs15 {color: #E67300;text-decoration: none;font-size:150%}/* 芒果探戈Mango Tango */
-.cs16 {color: #e40078;text-decoration: none;font-size:150%}/* 紅紫色Red-purple */
-.cs17 {color: #c71585;text-decoration: none;font-size:150%}/* 中紫紅Medium Violet Red */
-.cs18 {color: #ff1f8f;text-decoration: none;font-size:150%}/* 深粉紅色*Deep Pink* */
-.cs19 {color: #FF8F1F;text-decoration: none;font-size:150%}/* 紅蘿蔔橙Carrot Orange */
--->
-</style>
-<style type="text/css">
-@import url(https://fonts.googleapis.com/earlyaccess/cwtexkai.css);
-@import url(https://fonts.googleapis.com/earlyaccess/cwtexfangsong.css);
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@100;300;400;500;700&display=swap');
-#fangsong {
-	font-family: 'cwTeXFangSong', 'Shadows Into Light';
-	font-size: 30px;
-}
-#kai {
-	font-family: 'cwTeXKai', serif;
-	color: #3300ff;/*Purple*/
-	font-size: ;
-}
-#hei {
-	font-family: 'Noto Sans TC', 'Shadows Into Light';
-	font-size: ;
-	color: #33ff00;/*Green*/
-	text-decoration: none;
-}
-</style>
- </head>
-
+</head>
 <body>
-<center>
-<div class="example"><!-- div sample @media begin -->
+  <!--  螢光綠 + 燈管故障閃爍 -->
+<a href="mahjong-solitaire-music.html" class="text-glow-flicker neon-green">♠麻將對對碰<br>mahjong solitaire♠</a><p>
 
-<div class="glow" >♥ 紙牌遊戲Playcard Game ♥</div>
-<p>
- <A class="cs2" href="playcards2c.html" target="_self" >
-紙牌遊戲<br>playcards</a><p>
-<p>(接龍 Klondike, 新接龍 FreeCell, <br>蜘蛛紙牌 Spider, 廿一點 Blackjack, <br>傑克高手 Video Poker, 記憶翩牌 Memory)
-<p>
- &nbsp;<p>
-
-<div class="glow" >♠ mahjong solitaire Game ♠</div><p>
-<A class="cs7" href="mahjong-solitaire-music.html" target="_self" >
-麻將對對碰<br>mahjong solitaire</a><p>
-
- &nbsp;<p>
-</div>
+  <!--  賽博龐克藍 + 柔和呼吸 -->
+<a href="playcards2c.html" class="text-glow-pulse neon-blue">♥ 紙牌遊戲<br>Playcard Game ♥</a>
+  <!-- 4. 金黃色 + 發光外框卡片 -->
+  <div class="neon-card neon-gold">
+    <h3 style="margin-top:0;">紙牌遊戲Playcard Game </h3>
+    <p>(接龍 Klondike, 新接龍 FreeCell, <br>蜘蛛紙牌 Spider, 廿一點 Blackjack, <br>傑克高手 Video Poker, 記憶翩牌 Memory)<p>
+    <!-- 示範 SVG 圖示套用 drop-shadow 輪廓發光 -->
+  </div>
 
 <HR size=2 width=60% noshade color=white>
- &nbsp;<p>
 
-<A  class="qk" HREF="calendarHK(ColorMap).html" target="new"> 香港萬年曆及農曆節日查詢 </A>&nbsp;&nbsp;&nbsp;&nbsp;
- &nbsp;<p>
- &nbsp;<p>
-</div><!-- div sample @media end -->
+<a href="calendarHK(ColorMap).html" target="new" class="neon-btn neon-pink">香港萬年曆及農曆節日查詢</a><p>
+
 
 <script type="text/javascript" src="https://counter.websiteout.com/js/24/7/0/1"></script>
 </center>
- </body>
+
+</body>
 </html>
