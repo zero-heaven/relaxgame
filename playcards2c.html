@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
@@ -697,7 +697,6 @@
           <span id="global-bankroll">1,000</span>
         </div>
         <button id="btn-sound" class="btn" onclick="toggleSound()" title="音效開關">🔊</button>
-        <button class="btn btn-emerald" onclick="openRulesModal()">📖 玩法說明</button>
       </div>
     </div>
   </header>
@@ -716,6 +715,7 @@
         <div class="toolbar-group">
           <button onclick="klondikeNewGame()" class="btn btn-emerald">🔄 新局 New</button>
           <button onclick="klondikeQuitGame()" class="btn btn-rose">🛑 終止 Quit</button>
+        <button class="btn btn-emerald" onclick="openRulesModal()">📖 玩法說明</button>
           <select id="klondike-draw-mode" onchange="klondikeNewGame()" class="select-dark">
             <option value="1">翻 1 張 (Draw 1)</option>
             <option value="3">翻 3 張 (Draw 3)</option>
