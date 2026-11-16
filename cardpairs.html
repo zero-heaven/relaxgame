@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
@@ -576,12 +576,12 @@
         <div class="control-group">
           <label for="categorySelect">圖庫類別：</label>
           <select id="categorySelect">
-            <option value="poker">♠ 經典啤牌 (擬真雙向)</option>
-            <option value="mahjong">🀄 傳統麻雀 (加大牌面)</option>
+            <option value="poker" selected>♠ 經典啤牌</option>
+            <option value="mahjong">🀄 傳統麻雀</option>
             <option value="animal">🦊 靈動動物</option>
-            <option value="symbols" selected>🚀 趣味綜合</option>
+            <option value="symbols">🚀 趣味綜合</option>
+            <option value="food">🍔 美味食物</option>
             <!-- 💡 你可以在這裡加入更多自訂圖庫選項，例如： -->
-            <!-- <option value="food">🍔 美味食物</option> -->
           </select>
         </div>
 
@@ -628,10 +628,10 @@
 
   <!-- 卡牌正上方的快捷控制列（「顯示/隱藏設定」按鈕已移至播放音樂按鈕的左邊） -->
   <div class="game-action-bar">
-    <button id="restartBtn" class="primary-btn">🔄 重新開始</button>
-    <button id="pauseBtn" class="warning-btn">⏸ 暫停</button>
     <button id="togglePanelBtn" class="toggle-panel-btn">⚙️ 顯示設定</button>
     <button id="playPauseBtn" class="music-quick-btn" title="播放或暫停背景音樂">▶ 播放音樂</button>
+    <button id="restartBtn" class="primary-btn">🔄 重新開始</button>
+    <button id="pauseBtn" class="warning-btn">⏸ 暫停</button>
   </div>
 
   <!-- 卡牌區域與可點擊繼續的暫停遮罩 -->
@@ -713,8 +713,8 @@
       mahjong: ["🀇", "🀏", "🀐", "🀙", "🀡", "🀀", "🀁", "🀂", "🀃", "🀄", "🀅", "🀆"],
       animal: ["🦊", "🐼", "🦁", "🐯", "🐰", "🐨", "🐶", "🐱", "🐵", "🐧", "🦄", "🐸"],
       symbols: ["🚀", "🎸", "🍕", "💎", "🌈", "🍀", "🎯", "🐳", "🍩", "⚡", "🔥", "🔮"],
+      food: ["🍎", "🍌", "🍇", "🍉", "🍓", "🍒", "🍑", "🍍", "🥭", "🥝", "🍔", "🍣"]
       // 💡 可以在這裡新增更多自訂圖形組別（建議至少準備 12 個圖示）
-      // food: ["🍎", "🍌", "🍇", "🍉", "🍓", "🍒", "🍑", "🍍", "🥭", "🥝", "🍔", "🍣"]
     };
 
     const CARD_COLORS = [
