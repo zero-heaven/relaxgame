@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HTML5 十三張撲克牌</title>
+<style>
+:root {
+  --table-bg: radial-gradient(circle at center, #1b6b3a 0%, #0d3b1e 100%);
+  --card-back-color: #1e3a8a;
+  --card-back-pattern: repeating-linear-gradient(45deg, rgba(255,255,255,0.14) 0px, rgba(255,255,255,0.14) 4px, transparent 4px, transparent 8px),
+                       repeating-linear-gradient(-45deg, rgba(255,255,255,0.14) 0px, rgba(255,255,255,0.14) 4px, transparent 4px, transparent 8px);
+  --card-w: 66px;
+  --card-h: 94px;
+}
+
+* { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; font-family: system-ui, -apple-system, sans-serif; }
+body { margin: 0; background: var(--table-bg); color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; transition: background 0.3s; }
+
+/* 頂部設定列 */
+.top-bar { width: 100%; background: rgba(0,0,0,0.55); backdrop-filter: blur(6px); padding: 8px 14px; display: flex; justify-content: center; border-bottom: 1px solid rgba(255,255,255,0.15); }
+.top-bar-inner { width: 100%; max-width: 860px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.title-area { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.title-area h1 { margin: 0; font-size: 1.05rem; color: #ffd700; }
+.score-badge { background: rgba(255,215,0,0.18); border: 1px solid #ffd700; color: #ffd700; padding: 3px 10px; border-radius: 16px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
+.score-badge.low-cash { background: rgba(220,38,38,0.35); border-color: #f87171; color: #fecaca; }
+.device-tag { font-size: 0.7rem; color: #cbd5e1; background: rgba(255,255,255,0.12); padding: 2px 6px; border-radius: 4px; }
+
+.btn-cashin { background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; border: 1px solid #86efac; border-radius: 14px; padding: 3px 10px; font-size: 0.78rem; font-weight: bold; cursor: pointer; box-shadow: 0 0 10px rgba(34,197,94,0.6); animation: pulseCash 1.4s infinite; }
+@keyframes pulseCash {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+.customizers { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.control-group { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; color: #e2e8f0; }
+.swatch-btn { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); cursor: pointer; padding: 0; transition: 0.2s; }
+.swatch-btn.active, .swatch-btn:hover { transform: scale(1.18); border-color: #ffd700; }
+.style-select { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 5px; padding: 2px 6px; font-size: 0.78rem; outline: none; }
+.style-select option { background: #1e293b; }
+.card-back-preview { width: 20px; height: 28px; border-radius: 3px; background-color: var(--card-back-color); background-image: var(--card-back-pattern); border: 1.5px solid #fff; }
+
+/* 牌桌主體 */
+.table-container { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 10px 14px; max-width: 860px; width: 100%; gap: 8px; }
+.opponents-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.opponent-box { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.14); border-radius: 10px; padding: 6px 6px; text-align: center; overflow: hidden; }
+.opponent-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; margin-bottom: 5px; padding: 0 2px; }
+.opponent-cards-fan { display: flex; justify-content: center; height: 50px; align-items: center; }
+.mini-card-back { width: 32px; height: 46px; border-radius: 4px; background-color: var(--card-back-color); background-image: var(--card-back-pattern); border: 1.5px solid #fff; margin-left: -21px; box-shadow: -2px 2px 4px rgba(0,0,0,0.4); }
+.mini-card-back:first-child { margin-left: 0; }
+
+/* 對手攤牌排列 */
+.opponent-revealed { display: flex; flex-direction: column; gap: 3px; align-items: center; width: 100%; }
+.opp-row { display: flex; gap: 2px; align-items: center; justify-content: center; width: 100%; }
+.opp-rank-label { font-size: 0.64rem; background: rgba(0,0,0,0.65); padding: 1px 4px; border-radius: 3px; color: #ffd700; margin-left: 2px; white-space: nowrap; }
+
+.status-banner { text-align: center; font-size: 0.85rem; padding: 6px 12px; border-radius: 16px; background: rgba(0,0,0,0.45); color: #e2e8f0; }
+.foul-warning { background: rgba(220,38,38,0.9); color: #fff; font-weight: bold; }
+
+/* 玩家擺牌區 */
+.player-workspace { display: flex; flex-direction: column; align-items: center; gap: 8px; background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 12px; }
+.lane { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 560px; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.22); }
+.lane-info { display: flex; flex-direction: column; min-width: 78px; }
+.lane-title { font-size: 0.74rem; color: #94a3b8; font-weight: bold; }
+.lane-hand-name { font-size: 0.9rem; font-weight: bold; color: #38bdf8; }
+.lane-cards { display: flex; gap: 7px; justify-content: center; flex: 1; }
+.lane-score-diff { min-width: 44px; text-align: right; font-weight: bold; font-size: 0.88rem; }
+
+/* 擬真撲克牌 */
+.card {
+  width: var(--card-w);
+  height: var(--card-h);
+  background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+  border-radius: 6px;
+  box-shadow: 0 3px 7px rgba(0,0,0,0.45);
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  color: #111827;
+  overflow: hidden;
+  display: block;
+}
+.card.red { color: #dc2626; }
+.card:hover { transform: translateY(-4px); }
+.card.selected { transform: translateY(-10px) scale(1.04); box-shadow: 0 0 0 2.5px #ffd700, 0 8px 16px rgba(0,0,0,0.65); z-index: 10; }
+
+.card-corner {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-weight: 800;
+  font-size: 0.82rem;
+  z-index: 2;
+  width: 16px;
+  text-align: center;
+}
+.card-corner.top { top: 4px; left: 4px; }
+.card-corner.bottom { bottom: 4px; right: 4px; transform: rotate(180deg); }
+.card-suit-small { font-size: 0.72rem; margin-top: 1px; }
+
+.card-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.85rem;
+  line-height: 1;
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+/* 對手迷你牌專屬佈局 */
+.card.mini {
+  width: 28px;
+  height: 38px;
+  border-radius: 3px;
+  cursor: default;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 3px;
+}
+.card.mini:hover { transform: none; }
+.mini-rank { font-size: 0.66rem; font-weight: 800; line-height: 1; text-align: left; }
+.mini-suit { font-size: 0.82rem; line-height: 1; text-align: right; align-self: flex-end; }
+
+.actions-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 2px; }
+.btn { padding: 7px 14px; border: none; border-radius: 7px; font-size: 0.85rem; font-weight: bold; cursor: pointer; color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: opacity 0.2s, transform 0.1s; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.btn-secondary { background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.3); }
+.btn-success { background: linear-gradient(135deg, #10b981, #059669); }
+.btn-cashin-lg { background: linear-gradient(135deg, #22c55e, #16a34a); border: 1px solid #bbf7d0; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.win-text { color: #4ade80; }
+.lose-text { color: #f87171; }
+
+/* 手機版專屬自適應比例 */
+body.is-mobile { --card-w: 48px; --card-h: 68px; }
+body.is-mobile .top-bar { padding: 6px 8px; }
+body.is-mobile .title-area h1 { font-size: 0.92rem; }
+body.is-mobile .score-badge { font-size: 0.78rem; padding: 2px 8px; }
+body.is-mobile .customizers { gap: 6px; width: 100%; justify-content: space-between; }
+body.is-mobile .control-group { font-size: 0.7rem; gap: 3px; }
+body.is-mobile .swatch-btn { width: 15px; height: 15px; }
+body.is-mobile .table-container { padding: 6px; gap: 6px; }
+body.is-mobile .opponents-row { gap: 4px; }
+body.is-mobile .opponent-box { padding: 4px 3px; border-radius: 8px; }
+body.is-mobile .opponent-header { font-size: 0.66rem; margin-bottom: 3px; }
+body.is-mobile .opponent-cards-fan { height: 34px; }
+body.is-mobile .mini-card-back { width: 20px; height: 30px; margin-left: -15px; border-width: 1px; }
+
+body.is-mobile .opp-row { gap: 1px; }
+body.is-mobile .card.mini { width: 16px; height: 24px; padding: 1px 1.5px; border-radius: 2px; }
+body.is-mobile .mini-rank { font-size: 0.48rem; letter-spacing: -0.5px; }
+body.is-mobile .mini-suit { font-size: 0.56rem; }
+body.is-mobile .opp-rank-label { font-size: 0.5rem; padding: 1px 2px; margin-left: 1px; }
+
+body.is-mobile .status-banner { font-size: 0.74rem; padding: 5px 8px; }
+body.is-mobile .player-workspace { padding: 6px; gap: 5px; }
+body.is-mobile .lane { padding: 4px 6px; gap: 4px; }
+body.is-mobile .lane-info { min-width: 54px; }
+body.is-mobile .lane-title { font-size: 0.64rem; }
+body.is-mobile .lane-hand-name { font-size: 0.76rem; }
+body.is-mobile .lane-cards { gap: 4px; }
+body.is-mobile .lane-score-diff { min-width: 34px; font-size: 0.76rem; }
+
+body.is-mobile .card-corner { font-size: 0.68rem; width: 13px; }
+body.is-mobile .card-corner.top { top: 2px; left: 2px; }
+body.is-mobile .card-corner.bottom { bottom: 2px; right: 2px; }
+body.is-mobile .card-suit-small { font-size: 0.58rem; }
+body.is-mobile .card-center { font-size: 1.3rem; }
+body.is-mobile .btn { padding: 6px 9px; font-size: 0.75rem; }
+</style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="top-bar-inner">
+      <div class="title-area">
+        <h1>♠️ 十三張</h1>
+        <div class="score-badge" id="cash-badge">
+          <span>💰 資金: $<span id="total-cash">1000</span></span>
+          <button class="btn-cashin" id="btn-top-cashin" onclick="cashIn()" style="display:none">+ $1500 補充</button>
+        </div>
+        <span id="device-tag" class="device-tag">電腦版</span>
+      </div>
+
+      <div class="customizers">
+        <div class="control-group">
+          <span>底注:</span>
+          <select class="style-select" id="bet-select" onchange="setUnitBet(this.value)">
+            <option value="10">$10</option>
+            <option value="20">$20</option>
+            <option value="50">$50</option>
+            <option value="100">$100</option>
+            <option value="200">$200</option>
+            <option value="300">$300</option>
+            <option value="400">$400</option>
+            <option value="500">$500</option>
+            <option value="1000">$1000</option>
+          </select>
+        </div>
+
+        <div class="control-group" id="table-swatches">
+          <span>枱布:</span>
+          <button class="swatch-btn active" data-theme="green" style="background:#1b6b3a" onclick="setTableColor('green')"></button>
+          <button class="swatch-btn" data-theme="blue" style="background:#1e3a8a" onclick="setTableColor('blue')"></button>
+          <button class="swatch-btn" data-theme="red" style="background:#7f1d1d" onclick="setTableColor('red')"></button>
+          <button class="swatch-btn" data-theme="dark" style="background:#1f2937" onclick="setTableColor('dark')"></button>
+          <button class="swatch-btn" data-theme="purple" style="background:#4c1d95" onclick="setTableColor('purple')"></button>
+        </div>
+
+        <div class="control-group" id="back-swatches">
+          <span>卡背色:</span>
+          <button class="swatch-btn active" data-color="#1e3a8a" style="background:#1e3a8a" onclick="setCardBackColor('#1e3a8a')"></button>
+          <button class="swatch-btn" data-color="#b91c1c" style="background:#b91c1c" onclick="setCardBackColor('#b91c1c')"></button>
+          <button class="swatch-btn" data-color="#111827" style="background:#111827" onclick="setCardBackColor('#111827')"></button>
+          <button class="swatch-btn" data-color="#047857" style="background:#047857" onclick="setCardBackColor('#047857')"></button>
+          <button class="swatch-btn" data-color="#b45309" style="background:#b45309" onclick="setCardBackColor('#b45309')"></button>
+        </div>
+
+        <div class="control-group">
+          <span>款色:</span>
+          <select class="style-select" id="pattern-select" onchange="setCardBackPattern(this.value)">
+            <option value="diamond">經典菱格</option>
+            <option value="royal">皇家幾何</option>
+            <option value="waves">海浪波紋</option>
+            <option value="dots">星空圓點</option>
+          </select>
+          <div class="card-back-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <div class="opponents-row" id="opponents-area"></div>
+    <div class="status-banner" id="status-banner">點擊任意兩張牌交換，排好「前墩 ≤ 中墩 ≤ 後墩」按攤牌！</div>
+
+    <div class="player-workspace">
+      <div class="lane">
+        <div class="lane-info"><span class="lane-title">前墩 (3張)</span><span class="lane-hand-name" id="front-hand-name">-</span></div>
+        <div class="lane-cards" id="front-cards"></div>
+        <div class="lane-score-diff" id="front-diff"></div>
+      </div>
+      <div class="lane">
+        <div class="lane-info"><span class="lane-title">中墩 (5張)</span><span class="lane-hand-name" id="mid-hand-name">-</span></div>
+        <div class="lane-cards" id="mid-cards"></div>
+        <div class="lane-score-diff" id="mid-diff"></div>
+      </div>
+      <div class="lane">
+        <div class="lane-info"><span class="lane-title">後墩 (5張)</span><span class="lane-hand-name" id="back-hand-name">-</span></div>
+        <div class="lane-cards" id="back-cards"></div>
+        <div class="lane-score-diff" id="back-diff"></div>
+      </div>
+
+      <div class="actions-bar">
+        <button class="btn btn-secondary" id="btn-sort-rank" onclick="sortPlayerHand('rank')">點數排序</button>
+        <button class="btn btn-secondary" id="btn-sort-suit" onclick="sortPlayerHand('suit')">花色排序</button>
+        <button class="btn btn-primary" id="btn-auto-arrange" onclick="autoArrangePlayer()">✨ 智能理牌</button>
+        <button class="btn btn-success" id="btn-showdown" onclick="showdown()">🔥 攤牌比大小</button>
+        <button class="btn btn-primary" id="btn-new-game" onclick="startNewRound()" style="display:none">🔄 下一局</button>
+        <button class="btn btn-cashin-lg" id="btn-bar-cashin" onclick="cashIn()" style="display:none">💰 Cash In (+$1500)</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const STORAGE_KEY = 'poker13_save_v2';
+
+let appState = {
+  cash: 1000,
+  unitBet: 10,
+  tableTheme: 'green',
+  cardBackColor: '#1e3a8a',
+  cardBackPattern: 'diamond'
+};
+
+function loadSavedState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed.cash === 'number' && !isNaN(parsed.cash)) appState.cash = parsed.cash;
+      if (typeof parsed.unitBet === 'number' && !isNaN(parsed.unitBet)) appState.unitBet = parsed.unitBet;
+      if (parsed.tableTheme) appState.tableTheme = parsed.tableTheme;
+      if (parsed.cardBackColor) appState.cardBackColor = parsed.cardBackColor;
+      if (parsed.cardBackPattern) appState.cardBackPattern = parsed.cardBackPattern;
+    }
+  } catch (e) {
+    console.warn('讀取儲存設定失敗:', e);
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+  } catch (e) {
+    console.warn('儲存設定失敗:', e);
+  }
+}
+
+const SUITS = [
+  { symbol: '♠', color: 'black', order: 4 },
+  { symbol: '♥', color: 'red', order: 3 },
+  { symbol: '♣', color: 'black', order: 2 },
+  { symbol: '♦', color: 'red', order: 1 }
+];
+
+const RANKS = [
+  { val: 2, label: '2' }, { val: 3, label: '3' }, { val: 4, label: '4' },
+  { val: 5, label: '5' }, { val: 6, label: '6' }, { val: 7, label: '7' },
+  { val: 8, label: '8' }, { val: 9, label: '9' }, { val: 10, label: '10' },
+  { val: 11, label: 'J' }, { val: 12, label: 'Q' }, { val: 13, label: 'K' },
+  { val: 14, label: 'A' }
+];
+
+function createShuffledDeck() {
+  const deck = [];
+  SUITS.forEach(s => {
+    RANKS.forEach(r => {
+      deck.push({
+        suit: s.symbol,
+        suitOrder: s.order,
+        color: s.color,
+        rank: r.val,
+        label: r.label
+      });
+    });
+  });
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+function evaluateHand(cards) {
+  const sorted = [...cards].sort((a, b) => b.rank - a.rank || b.suitOrder - a.suitOrder);
+  const is5 = cards.length === 5;
+  const ranks = sorted.map(c => c.rank);
+  const suits = sorted.map(c => c.suit);
+
+  const counts = {};
+  ranks.forEach(r => counts[r] = (counts[r] || 0) + 1);
+  const groups = Object.entries(counts)
+    .map(([r, c]) => ({ rank: +r, count: c }))
+    .sort((a, b) => b.count - a.count || b.rank - a.rank);
+
+  const isFlush = is5 && suits.every(s => s === suits[0]);
+  let isStraight = false;
+  let straightHigh = 0;
+
+  if (is5 && groups.length === 5) {
+    if (ranks[0] - ranks[4] === 4) {
+      isStraight = true;
+      straightHigh = ranks[0];
+    } else if (ranks[0] === 14 && ranks[1] === 5 && ranks[4] === 2) {
+      isStraight = true;
+      straightHigh = 5;
+    }
+  }
+
+  if (isFlush && isStraight) return { cat: 8, name: '同花順', tb: [straightHigh] };
+  if (groups[0].count === 4) return { cat: 7, name: '鐵支', tb: [groups[0].rank, groups[1].rank] };
+  if (is5 && groups[0].count === 3 && groups[1].count === 2) return { cat: 6, name: '葫蘆', tb: [groups[0].rank, groups[1].rank] };
+  if (isFlush) return { cat: 5, name: '同花', tb: ranks };
+  if (isStraight) return { cat: 4, name: '順子', tb: [straightHigh] };
+  if (groups[0].count === 3) return { cat: 3, name: '三條', tb: groups.map(g => g.rank) };
+  if (groups[0].count === 2 && groups[1] && groups[1].count === 2) return { cat: 2, name: '兩對', tb: groups.map(g => g.rank) };
+  if (groups[0].count === 2) return { cat: 1, name: '一對', tb: groups.map(g => g.rank) };
+  return { cat: 0, name: '烏龍', tb: ranks };
+}
+
+function compareHands(a, b) {
+  if (a.cat !== b.cat) return a.cat > b.cat ? 1 : -1;
+  for (let i = 0; i < Math.min(a.tb.length, b.tb.length); i++) {
+    if (a.tb[i] !== b.tb[i]) return a.tb[i] > b.tb[i] ? 1 : -1;
+  }
+  return 0;
+}
+
+const checkFoul = (f, m, b) => compareHands(f, m) > 0 || compareHands(m, b) > 0;
+
+function findBestArrangement(cards13) {
+  let bestScore = -99999;
+  let bestOrder = [...cards13];
+  const base = [...cards13].sort((a, b) => b.rank - a.rank);
+
+  for (let i = 0; i < 800; i++) {
+    const cand = i === 0
+      ? [base[12], base[11], base[10], base[9], base[8], base[7], base[6], base[5], base[4], base[3], base[2], base[1], base[0]]
+      : [...cards13].sort(() => Math.random() - 0.5);
+
+    const f = evaluateHand(cand.slice(0, 3));
+    const m = evaluateHand(cand.slice(3, 8));
+    const b = evaluateHand(cand.slice(8, 13));
+
+    if (!checkFoul(f, m, b)) {
+      const score = (f.cat * 15 + f.tb[0]) * 1.35 + (m.cat * 15 + m.tb[0]) * 1.15 + (b.cat * 15 + b.tb[0]);
+      if (score > bestScore) {
+        bestScore = score;
+        bestOrder = cand;
+      }
+    }
+  }
+  const sortLane = arr => arr.sort((a, b) => b.rank - a.rank || b.suitOrder - a.suitOrder);
+  return [...sortLane(bestOrder.slice(0, 3)), ...sortLane(bestOrder.slice(3, 8)), ...sortLane(bestOrder.slice(8, 13))];
+}
+
+// UI 控制
+let playerCards = [], selectedIdx = null, opponents = [], isRoundOver = false;
+
+function detectDevice() {
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth <= 680;
+  document.body.classList.toggle('is-mobile', isMobile);
+  const tag = document.getElementById('device-tag');
+  if (tag) tag.textContent = isMobile ? '手機版' : '電腦版';
+}
+window.addEventListener('resize', detectDevice);
+detectDevice();
+
+function applyThemeVisuals() {
+  const tableMap = {
+    green: 'radial-gradient(circle, #1b6b3a 0%, #0d3b1e 100%)',
+    blue: 'radial-gradient(circle, #1e40af 0%, #0f172a 100%)',
+    red: 'radial-gradient(circle, #991b1b 0%, #450a0a 100%)',
+    dark: 'radial-gradient(circle, #374151 0%, #111827 100%)',
+    purple: 'radial-gradient(circle, #5b21b6 0%, #2e1065 100%)'
+  };
+  document.documentElement.style.setProperty('--table-bg', tableMap[appState.tableTheme] || tableMap.green);
+  document.querySelectorAll('#table-swatches .swatch-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === appState.tableTheme);
+  });
+
+  document.documentElement.style.setProperty('--card-back-color', appState.cardBackColor);
+  document.querySelectorAll('#back-swatches .swatch-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.color === appState.cardBackColor);
+  });
+
+  const patternMap = {
+    diamond: 'repeating-linear-gradient(45deg,rgba(255,255,255,0.14) 0 4px,transparent 4px 8px),repeating-linear-gradient(-45deg,rgba(255,255,255,0.14) 0 4px,transparent 4px 8px)',
+    royal: 'radial-gradient(circle,transparent 35%,rgba(255,215,0,0.25) 36% 42%,transparent 43%),linear-gradient(to right,rgba(255,255,255,0.15) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,0.15) 1px,transparent 1px)',
+    waves: 'repeating-radial-gradient(circle at 0 0,transparent 0,rgba(255,255,255,0.12) 6px,transparent 12px)',
+    dots: 'radial-gradient(rgba(255,255,255,0.28) 2px,transparent 2px)'
+  };
+  document.documentElement.style.setProperty('--card-back-pattern', patternMap[appState.cardBackPattern] || patternMap.diamond);
+  
+  const patternSel = document.getElementById('pattern-select');
+  if (patternSel) patternSel.value = appState.cardBackPattern;
+
+  const betSel = document.getElementById('bet-select');
+  if (betSel) betSel.value = appState.unitBet;
+}
+
+function setTableColor(theme) {
+  appState.tableTheme = theme;
+  applyThemeVisuals();
+  saveState();
+}
+
+function setCardBackColor(color) {
+  appState.cardBackColor = color;
+  applyThemeVisuals();
+  saveState();
+}
+
+function setCardBackPattern(p) {
+  appState.cardBackPattern = p;
+  applyThemeVisuals();
+  saveState();
+}
+
+function setUnitBet(val) {
+  appState.unitBet = parseInt(val, 10) || 10;
+  saveState();
+  if (!isRoundOver) {
+    renderPlayerArea();
+  }
+}
+
+function updateCashUI() {
+  document.getElementById('total-cash').textContent = appState.cash;
+  const isBroke = appState.cash <= 0;
+  document.getElementById('cash-badge').classList.toggle('low-cash', isBroke);
+  document.getElementById('btn-top-cashin').style.display = isBroke ? 'inline-block' : 'none';
+  document.getElementById('btn-bar-cashin').style.display = isBroke ? 'inline-block' : 'none';
+
+  if (isBroke && isRoundOver) {
+    document.getElementById('btn-new-game').style.display = 'none';
+  }
+}
+
+function cashIn() {
+  appState.cash += 1500;
+  saveState();
+  updateCashUI();
+
+  const banner = document.getElementById('status-banner');
+  banner.className = 'status-banner';
+  banner.innerHTML = `💰 已成功補充 <strong class="win-text">+$1500</strong>！目前資金：<strong>$${appState.cash}</strong>`;
+
+  if (isRoundOver) {
+    document.getElementById('btn-new-game').style.display = 'inline-block';
+  }
+}
+
+function startNewRound() {
+  if (appState.cash <= 0) {
+    updateCashUI();
+    const banner = document.getElementById('status-banner');
+    banner.className = 'status-banner foul-warning';
+    banner.textContent = '⚠️ 資金不足 ($0 或負數)！請先按「💰 Cash In (+$1500)」補充資金！';
+    return;
+  }
+
+  isRoundOver = false;
+  selectedIdx = null;
+  const deck = createShuffledDeck();
+
+  playerCards = deck.slice(0, 13);
+  opponents = ['電腦 A', '電腦 B', '電腦 C'].map((name, idx) => ({
+    name,
+    cards: findBestArrangement(deck.slice(13 + idx * 13, 26 + idx * 13)),
+    diff: null
+  }));
+
+  ['front-diff', 'mid-diff', 'back-diff'].forEach(id => document.getElementById(id).textContent = '');
+  document.getElementById('btn-showdown').style.display = 'inline-block';
+  document.getElementById('btn-new-game').style.display = 'none';
+  ['btn-auto-arrange', 'btn-sort-rank', 'btn-sort-suit'].forEach(id => document.getElementById(id).disabled = false);
+
+  updateCashUI();
+  renderOpponents(false);
+  renderPlayerArea();
+}
+
+function createCardEl(card, idx, isMini) {
+  const el = document.createElement('div');
+
+  if (isMini) {
+    el.className = `card mini ${card.color}`;
+    el.innerHTML = `<span class="mini-rank">${card.label}</span><span class="mini-suit">${card.suit}</span>`;
+    return el;
+  }
+
+  el.className = `card ${card.color} ${selectedIdx === idx ? 'selected' : ''}`;
+  el.innerHTML = `
+    <div class="card-corner top"><span>${card.label}</span><span class="card-suit-small">${card.suit}</span></div>
+    <div class="card-center">${card.suit}</div>
+    <div class="card-corner bottom"><span>${card.label}</span><span class="card-suit-small">${card.suit}</span></div>
+  `;
+
+  if (!isRoundOver) {
+    el.onclick = () => {
+      if (selectedIdx === null) selectedIdx = idx;
+      else if (selectedIdx === idx) selectedIdx = null;
+      else {
+        [playerCards[selectedIdx], playerCards[idx]] = [playerCards[idx], playerCards[selectedIdx]];
+        selectedIdx = null;
+      }
+      renderPlayerArea();
+    };
+  }
+  return el;
+}
+
+function renderPlayerArea() {
+  const ids = ['front-cards', 'mid-cards', 'back-cards'];
+  ids.forEach(id => document.getElementById(id).innerHTML = '');
+  playerCards.forEach((c, i) => {
+    const targetId = i < 3 ? ids[0] : i < 8 ? ids[1] : ids[2];
+    document.getElementById(targetId).appendChild(createCardEl(c, i, false));
+  });
+
+  const f = evaluateHand(playerCards.slice(0, 3));
+  const m = evaluateHand(playerCards.slice(3, 8));
+  const b = evaluateHand(playerCards.slice(8, 13));
+  document.getElementById('front-hand-name').textContent = f.name;
+  document.getElementById('mid-hand-name').textContent = m.name;
+  document.getElementById('back-hand-name').textContent = b.name;
+
+  if (!isRoundOver) {
+    const banner = document.getElementById('status-banner');
+    const foul = checkFoul(f, m, b);
+    banner.className = foul ? 'status-banner foul-warning' : 'status-banner';
+    banner.textContent = foul
+      ? '⚠️ 警告：目前「倒水（相公）」！須保持 前墩 ≤ 中墩 ≤ 後墩'
+      : `✅ 牌型合法！點擊兩張牌交換，或按「攤牌比大小」（每墩 $${appState.unitBet}）`;
+  }
+}
+
+function renderOpponents(revealed) {
+  const area = document.getElementById('opponents-area');
+  area.innerHTML = '';
+  opponents.forEach(opp => {
+    const box = document.createElement('div');
+    box.className = 'opponent-box';
+    const res = revealed && opp.diff !== null
+      ? `<span class="${opp.diff > 0 ? 'win-text' : opp.diff < 0 ? 'lose-text' : ''}">${opp.diff > 0 ? '+' : ''}${opp.diff} 墩</span>`
+      : '<span style="color:#94a3b8">理牌中</span>';
+    box.innerHTML = `<div class="opponent-header"><span>🤖 ${opp.name}</span>${res}</div>`;
+
+    if (!revealed) {
+      const fan = document.createElement('div');
+      fan.className = 'opponent-cards-fan';
+      for (let i = 0; i < 13; i++) fan.innerHTML += '<div class="mini-card-back"></div>';
+      box.appendChild(fan);
+    } else {
+      const rev = document.createElement('div');
+      rev.className = 'opponent-revealed';
+      [[0, 3], [3, 8], [8, 13]].forEach(([s, e]) => {
+        const sub = opp.cards.slice(s, e);
+        const ev = evaluateHand(sub);
+        const row = document.createElement('div');
+        row.className = 'opp-row';
+        sub.forEach(c => row.appendChild(createCardEl(c, -1, true)));
+        row.innerHTML += `<span class="opp-rank-label">${ev.name}</span>`;
+        rev.appendChild(row);
+      });
+      box.appendChild(rev);
+    }
+    area.appendChild(box);
+  });
+}
+
+function sortPlayerHand(mode) {
+  if (isRoundOver) return;
+  selectedIdx = null;
+  playerCards.sort((a, b) => mode === 'rank'
+    ? (a.rank - b.rank || a.suitOrder - b.suitOrder)
+    : (b.suitOrder - a.suitOrder || b.rank - a.rank));
+  renderPlayerArea();
+}
+
+function autoArrangePlayer() {
+  if (isRoundOver) return;
+  selectedIdx = null;
+  playerCards = findBestArrangement(playerCards);
+  renderPlayerArea();
+}
+
+function showdown() {
+  const pF = evaluateHand(playerCards.slice(0, 3));
+  const pM = evaluateHand(playerCards.slice(3, 8));
+  const pB = evaluateHand(playerCards.slice(8, 13));
+  const foul = checkFoul(pF, pM, pB);
+  if (foul && !confirm('目前牌型處於「倒水（相公）」狀態，確定直接攤牌嗎？')) return;
+
+  isRoundOver = true;
+  selectedIdx = null;
+  let fNet = 0, mNet = 0, bNet = 0, roundTotal = 0;
+
+  opponents.forEach(opp => {
+    let vs = 0;
+    if (foul) {
+      vs = -3; fNet--; mNet--; bNet--;
+    } else {
+      const cF = compareHands(pF, evaluateHand(opp.cards.slice(0, 3)));
+      const cM = compareHands(pM, evaluateHand(opp.cards.slice(3, 8)));
+      const cB = compareHands(pB, evaluateHand(opp.cards.slice(8, 13)));
+      fNet += cF; mNet += cM; bNet += cB;
+      vs = cF + cM + cB;
+      if (cF === 1 && cM === 1 && cB === 1) vs = 6;
+      if (cF === -1 && cM === -1 && cB === -1) vs = -6;
+    }
+    opp.diff = vs;
+    roundTotal += vs;
+  });
+
+  const cashChange = roundTotal * appState.unitBet;
+  appState.cash += cashChange;
+  saveState();
+
+  const fmt = v => v > 0 ? `<span class="win-text">+${v}</span>` : v < 0 ? `<span class="lose-text">${v}</span>` : '0';
+  document.getElementById('front-diff').innerHTML = fmt(fNet);
+  document.getElementById('mid-diff').innerHTML = fmt(mNet);
+  document.getElementById('back-diff').innerHTML = fmt(bNet);
+
+  const banner = document.getElementById('status-banner');
+  banner.className = 'status-banner';
+  if (appState.cash <= 0) {
+    banner.className = 'status-banner foul-warning';
+    banner.innerHTML = `💸 本局 ${cashChange >= 0 ? '+' : ''}$${cashChange}，資金已歸零！請按「💰 Cash In (+$1500)」繼續遊戲`;
+  } else {
+    banner.innerHTML = roundTotal > 0
+      ? `🎉 本局淨贏 <strong class="win-text">+${roundTotal} 墩 (+$${cashChange})</strong>`
+      : roundTotal < 0
+        ? `😅 本局淨輸 <strong class="lose-text">${roundTotal} 墩 (-$${Math.abs(cashChange)})</strong>`
+        : '🤝 本局平手 ($0)';
+  }
+
+  document.getElementById('btn-showdown').style.display = 'none';
+  document.getElementById('btn-new-game').style.display = appState.cash > 0 ? 'inline-block' : 'none';
+  ['btn-auto-arrange', 'btn-sort-rank', 'btn-sort-suit'].forEach(id => document.getElementById(id).disabled = true);
+
+  updateCashUI();
+  renderOpponents(true);
+  renderPlayerArea();
+}
+
+// 初始化讀取儲存並開局
+loadSavedState();
+applyThemeVisuals();
+updateCashUI();
+if (appState.cash > 0) {
+  startNewRound();
+} else {
+  const banner = document.getElementById('status-banner');
+  banner.className = 'status-banner foul-warning';
+  banner.textContent = '⚠️ 目前資金為 $0 或負數！請先按「💰 Cash In (+$1500)」補充資金！';
+}
+</script>
+</body>
+</html>
