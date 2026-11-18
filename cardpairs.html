@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
@@ -6,7 +6,6 @@
   <title>記憶翻牌挑戰 - 預設隱藏設定與自訂圖庫版</title>
   <style>
     :root {
-      --bg-dark: #0f172a;
       --panel-bg: #1e293b;
       --panel-border: #334155;
       --text-main: #f8fafc;
@@ -21,6 +20,9 @@
       --card-back-border: #60a5fa;
       --card-pattern-image: radial-gradient(rgba(255, 255, 255, 0.2) 2px, transparent 2px);
       --card-pattern-size: 16px 16px;
+
+      /* 預設枱布背景變數 (深海暗藍漸層) */
+      --table-bg: linear-gradient(135deg, #0b132b, #1c2541);
     }
 
     * {
@@ -31,14 +33,15 @@
     }
 
     body {
-      background-color: var(--bg-dark);
+      background: var(--table-bg);
+      background-attachment: fixed;
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 14px 16px 32px;
-      transition: padding 0.3s ease;
+      transition: background 0.3s ease, padding 0.3s ease;
     }
 
     /* 頂部標題與狀態列 */
@@ -310,11 +313,6 @@
       background: rgba(30, 41, 59, 0.78);
       border: 1px solid var(--panel-border);
       border-radius: 12px;
-      transition: max-width 0.35s ease;
-    }
-
-    body.panel-hidden .game-action-bar {
-      max-width: 1060px;
     }
 
     .game-action-bar button {
@@ -329,34 +327,18 @@
     .board-container {
       position: relative;
       width: 100%;
-      max-width: 760px;
       display: flex;
       justify-content: center;
       flex: 1;
       align-items: center;
-      transition: max-width 0.35s ease;
-    }
-
-    body.panel-hidden .board-container {
-      max-width: 1060px;
     }
 
     .board {
       display: grid;
-      gap: 14px;
       width: 100%;
+      justify-content: center;
       perspective: 1000px;
-      transition: max-width 0.35s ease, gap 0.35s ease;
     }
-
-    .board.grid-4 { grid-template-columns: repeat(4, 1fr); max-width: 640px; }
-    .board.grid-5 { grid-template-columns: repeat(5, 1fr); max-width: 760px; }
-    .board.grid-6 { grid-template-columns: repeat(6, 1fr); max-width: 860px; }
-
-    body.panel-hidden .board { gap: 18px; }
-    body.panel-hidden .board.grid-4 { max-width: 780px; }
-    body.panel-hidden .board.grid-5 { max-width: 920px; }
-    body.panel-hidden .board.grid-6 { max-width: 1040px; }
 
     /* 暫停遮罩 */
     .pause-overlay {
@@ -401,6 +383,7 @@
     }
 
     .card {
+      width: 100%;
       aspect-ratio: 3 / 4;
       position: relative;
       transform-style: preserve-3d;
@@ -421,12 +404,12 @@
     .card-face {
       position: absolute;
       inset: 0;
-      border-radius: 12px;
+      border-radius: 8px;
       backface-visibility: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
     }
 
     .card-back {
@@ -434,30 +417,43 @@
       background-image: var(--card-pattern-image), var(--card-back-bg);
       background-size: var(--card-pattern-size), cover;
       background-position: center;
-      border: 2px solid var(--card-back-border);
+      border: 1.5px solid var(--card-back-border);
       overflow: hidden;
     }
 
     .card-back::after {
       content: attr(data-emblem);
-      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
       opacity: 0.35;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+      line-height: 1;
     }
 
     .card-front {
       background: linear-gradient(145deg, #ffffff, #f1f5f9);
       color: #0f172a;
       transform: rotateY(180deg);
-      font-size: clamp(2.2rem, 5vw, 3.8rem);
-      border: 2px solid #cbd5e1;
+      border: 1.5px solid #cbd5e1;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .card.matched .card-front {
       background: linear-gradient(145deg, #dcfce7, #bbf7d0);
       border-color: var(--success);
-      box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+    }
+
+    /* 通用置中包裝容器 */
+    .tile-center-box {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      text-align: center;
     }
 
     /* 擬真啤牌排版 */
@@ -483,26 +479,35 @@
       font-weight: 800;
     }
 
-    .poker-corner.top-left { top: 8px; left: 9px; }
-    .poker-corner.bottom-right { bottom: 8px; right: 9px; transform: rotate(180deg); }
+    .poker-corner.top-left { top: 3px; left: 4px; }
+    .poker-corner.bottom-right { bottom: 3px; right: 4px; transform: rotate(180deg); }
 
-    .poker-rank { font-size: clamp(1rem, 2.2vw, 1.45rem); letter-spacing: -0.5px; }
-    .poker-mini-suit { font-size: clamp(0.9rem, 2vw, 1.3rem); margin-top: 1px; }
-    .poker-center-suit { font-size: clamp(2.3rem, 5.4vw, 4rem); filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.12)); }
-
-    /* 麻雀加大排版 */
-    .mahjong-tile {
-      font-size: clamp(3.2rem, 8vw, 5.6rem);
+    .poker-rank { letter-spacing: -0.5px; }
+    .poker-mini-suit { margin-top: 1px; }
+    .poker-center-suit {
       line-height: 1;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.12));
+    }
+
+    /* ===== 麻雀排版與真實花式配色 ===== */
+    .mahjong-tile {
+      width: 100%;
+      height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 100%;
-      height: 100%;
-      font-family: "Segoe UI Symbol", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
-      filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.22));
-      transform: scale(1.14);
+      line-height: 1;
+      text-align: center;
+      font-family: "Segoe UI Symbol", "Noto Sans Symbols 2", "Apple Symbols", sans-serif;
+      font-variant-emoji: text;
+      filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.22));
+      transform: translateY(-5.5px);
     }
+
+    .mahjong-tile.dark  { color: #1e293b; }
+    .mahjong-tile.red   { color: #dc2626; }
+    .mahjong-tile.green { color: #15803d; }
+    .mahjong-tile.blue  { color: #1d4ed8; }
 
     /* 勝利彈窗 */
     .modal-overlay {
@@ -532,13 +537,53 @@
     .modal-box h2 { font-size: 1.6rem; color: var(--success); margin-bottom: 12px; }
     .modal-box p { color: var(--text-main); margin-bottom: 20px; line-height: 1.6; }
 
-    @media (max-width: 760px) {
+    /* ===== 1. 預設手機版（直式螢幕 / 小螢幕 < 768px）卡片與字體大小 ===== */
+    .board.grid-4 { grid-template-columns: repeat(4, 1.5cm); }
+    .board.grid-5 { grid-template-columns: repeat(5, 1.5cm); }
+    .board.grid-6 { grid-template-columns: repeat(6, 1.5cm); }
+
+    .board {
+      gap: 6px;
+    }
+
+    .card {
+      max-width: 1.5cm;
+    }
+
+    .card-back::after { font-size: 0.85rem; }
+    .tile-center-box { font-size: 1.6rem; }
+    .poker-rank { font-size: 0.8rem; }
+    .poker-mini-suit { font-size: 0.5rem; }
+    .poker-center-suit { font-size: 1.4rem; }
+    .mahjong-tile { font-size: 4rem; }
+
+    /* ===== 2. 自動偵測電腦大螢幕 (PC Big Screen >= 768px) ===== */
+    @media (min-width: 768px) {
+      .board.grid-4 { grid-template-columns: repeat(4, 2.8cm); }
+      .board.grid-5 { grid-template-columns: repeat(5, 2.8cm); }
+      .board.grid-6 { grid-template-columns: repeat(6, 2.8cm); }
+
+      .board {
+        gap: 10px;
+      }
+
+      .card {
+        max-width: 2.8cm;
+      }
+
+      .card-back::after { font-size: 1.5rem; }
+      .tile-center-box { font-size: 3.1rem; }
+      .poker-rank { font-size: 1rem; }
+      .poker-mini-suit { font-size: 0.9rem; }
+      .poker-center-suit { font-size: 2.1rem; }
+      .mahjong-tile { font-size: 6rem; }
+    }
+
+    @media (max-width: 767px) {
       .top-bar { flex-direction: column; align-items: stretch; }
       .stats-bar { justify-content: space-between; }
       .control-row, .music-bar { flex-direction: column; align-items: stretch; }
       .music-controls { justify-content: flex-start; }
-      .poker-corner.top-left { top: 4px; left: 5px; }
-      .poker-corner.bottom-right { bottom: 4px; right: 5px; }
     }
   </style>
 </head>
@@ -561,7 +606,7 @@
   <!-- 可收合的完整設定面板 -->
   <div class="control-panel-wrapper" id="controlPanelWrapper">
     <section class="control-panel">
-      <!-- 第一列：卡片數量、圖庫類別、背面顏色、背面圖案 -->
+      <!-- 第一列：卡片數量、圖庫類別、背面顏色、背面圖案、枱布顏色 -->
       <div class="control-row">
         <div class="control-group">
           <label for="cardCountSelect">數量：</label>
@@ -581,7 +626,6 @@
             <option value="animal">🦊 靈動動物</option>
             <option value="symbols">🚀 趣味綜合</option>
             <option value="food">🍔 美味食物</option>
-            <!-- 💡 你可以在這裡加入更多自訂圖庫選項，例如： -->
           </select>
         </div>
 
@@ -593,6 +637,18 @@
         <div class="control-group">
           <label for="patternSelect">背面圖案：</label>
           <select id="patternSelect"></select>
+        </div>
+
+        <div class="control-group">
+          <label for="tableColorSelect">枱布樣式：</label>
+          <select id="tableColorSelect">
+            <option value="linear-gradient(135deg, #0b132b, #1c2541)">🌌 深海暗藍 (預設)</option>
+            <option value="radial-gradient(circle, #065f46 0%, #022c22 100%)">🌿 經典呢絨綠</option>
+            <option value="radial-gradient(circle, #991b1b 0%, #450a0a 100%)">🎰 賭場緋紅</option>
+            <option value="linear-gradient(135deg, #311060, #13072e)">👑 皇家深紫</option>
+            <option value="linear-gradient(135deg, #18181b, #09090b)">🖤 極簡炫黑</option>
+            <option value="repeating-linear-gradient(45deg, #382e2b 0, #382e2b 10px, #2d2422 10px, #2d2422 20px), linear-gradient(135deg, #443835, #221c1a)">🪵 沉穩木紋灰</option>
+          </select>
         </div>
       </div>
 
@@ -614,8 +670,8 @@
           <button id="prevTrackBtn" title="上一首" disabled>⏮</button>
           <button id="nextTrackBtn" title="下一首" disabled>⏭</button>
           <select id="loopModeSelect" title="循環模式">
-            <option value="all" selected>🔁 全部循環</option>
-            <option value="single">🔂 單曲循環</option>
+            <option value="all" selected>🔁 全部循環播放</option>
+            <option value="single">🔂 單曲無限重播</option>
           </select>
           <div class="volume-box">
             <span>🔊</span>
@@ -626,7 +682,7 @@
     </section>
   </div>
 
-  <!-- 卡牌正上方的快捷控制列（「顯示/隱藏設定」按鈕已移至播放音樂按鈕的左邊） -->
+  <!-- 卡牌正上方的快捷控制列 -->
   <div class="game-action-bar">
     <button id="togglePanelBtn" class="toggle-panel-btn">⚙️ 顯示設定</button>
     <button id="playPauseBtn" class="music-quick-btn" title="播放或暫停背景音樂">▶ 播放音樂</button>
@@ -655,16 +711,17 @@
   <audio id="bgmPlayer"></audio>
 
   <script>
-    // ================= 1. 本地設定儲存 (localStorage) - 預設 panelCollapsed 為 true =================
-    const STORAGE_KEY = "memory_card_game_settings_v5";
+    // ================= 1. 本地設定儲存 (localStorage) =================
+    const STORAGE_KEY = "memory_card_game_settings_v8";
     const defaultSettings = {
       cardCount: 16,
       category: "poker",
       colorIndex: 0,
       patternIndex: 0,
+      tableColor: "linear-gradient(135deg, #0b132b, #1c2541)",
       loopMode: "all",
       volume: 0.6,
-      panelCollapsed: true // 👈 預設設為隱藏
+      panelCollapsed: true
     };
 
     let savedSettings = { ...defaultSettings };
@@ -692,7 +749,7 @@
       }
     }
 
-    // ================= 2. 多元圖庫分類資料庫（可在這裡自行加入更多組別） =================
+    // ================= 2. 多元圖庫分類資料庫 =================
     const POKER_DECK_DATA = [
       { id: "spade-A", suit: "♠", rank: "A", color: "black" },
       { id: "heart-K", suit: "♥", rank: "K", color: "red" },
@@ -708,13 +765,38 @@
       { id: "club-7", suit: "♣", rank: "7", color: "black" }
     ];
 
+    const MAHJONG_DECK_DATA = [
+      { char: "🀀", color: "dark" },  { char: "🀁", color: "dark" },
+      { char: "🀂", color: "dark" },  { char: "🀃", color: "dark" },
+      { char: "🀄", color: "red" },   { char: "🀅", color: "green" },
+      { char: "🀆", color: "blue" },
+      { char: "🀇", color: "red" },   { char: "🀈", color: "red" },
+      { char: "🀉", color: "red" },   { char: "🀊", color: "red" },
+      { char: "🀋", color: "red" },   { char: "🀌", color: "red" },
+      { char: "🀍", color: "red" },   { char: "🀎", color: "red" },
+      { char: "🀏", color: "red" },
+      { char: "🀐", color: "green" }, { char: "🀑", color: "green" },
+      { char: "🀒", color: "green" }, { char: "🀓", color: "green" },
+      { char: "🀔", color: "green" }, { char: "🀕", color: "green" },
+      { char: "🀖", color: "green" }, { char: "🀗", color: "green" },
+      { char: "🀘", color: "green" },
+      { char: "🀙", color: "blue" },  { char: "🀚", color: "blue" },
+      { char: "🀛", color: "blue" },  { char: "🀜", color: "blue" },
+      { char: "🀝", color: "blue" },  { char: "🀞", color: "blue" },
+      { char: "🀟", color: "blue" },  { char: "🀠", color: "blue" },
+      { char: "🀡", color: "blue" },
+      { char: "🀢", color: "red" },   { char: "🀣", color: "green" },
+      { char: "🀤", color: "blue" },  { char: "🀥", color: "dark" },
+      { char: "🀦", color: "green" }, { char: "🀧", color: "red" },
+      { char: "🀨", color: "blue" },  { char: "🀩", color: "dark" }
+    ];
+
     const CARD_CATEGORIES = {
       poker: POKER_DECK_DATA,
-      mahjong: ["🀇", "🀏", "🀐", "🀙", "🀡", "🀀", "🀁", "🀂", "🀃", "🀄", "🀅", "🀆"],
+      mahjong: MAHJONG_DECK_DATA,
       animal: ["🦊", "🐼", "🦁", "🐯", "🐰", "🐨", "🐶", "🐱", "🐵", "🐧", "🦄", "🐸"],
       symbols: ["🚀", "🎸", "🍕", "💎", "🌈", "🍀", "🎯", "🐳", "🍩", "⚡", "🔥", "🔮"],
       food: ["🍎", "🍌", "🍇", "🍉", "🍓", "🍒", "🍑", "🍍", "🥭", "🥝", "🍔", "🍣"]
-      // 💡 可以在這裡新增更多自訂圖形組別（建議至少準備 12 個圖示）
     };
 
     const CARD_COLORS = [
@@ -745,6 +827,7 @@
     const togglePanelBtn = document.getElementById("togglePanelBtn");
     const cardCountSelect = document.getElementById("cardCountSelect");
     const categorySelect = document.getElementById("categorySelect");
+    const tableColorSelect = document.getElementById("tableColorSelect");
     const restartBtn = document.getElementById("restartBtn");
     const pauseBtn = document.getElementById("pauseBtn");
     const pauseOverlay = document.getElementById("pauseOverlay");
@@ -795,11 +878,9 @@
     function applyPanelVisibility(collapsed) {
       if (collapsed) {
         controlPanelWrapper.classList.add("collapsed");
-        document.body.classList.add("panel-hidden");
         togglePanelBtn.textContent = "⚙️ 顯示設定";
       } else {
         controlPanelWrapper.classList.remove("collapsed");
-        document.body.classList.remove("panel-hidden");
         togglePanelBtn.textContent = "⚙️ 隱藏設定";
       }
     }
@@ -813,11 +894,23 @@
     function restoreSavedUI() {
       cardCountSelect.value = String(savedSettings.cardCount);
       categorySelect.value = savedSettings.category;
+      tableColorSelect.value = savedSettings.tableColor || "linear-gradient(135deg, #0b132b, #1c2541)";
       loopModeSelect.value = savedSettings.loopMode;
       volumeSlider.value = String(savedSettings.volume);
       bgmPlayer.volume = Number(savedSettings.volume);
       applyPanelVisibility(Boolean(savedSettings.panelCollapsed));
+      applyTableColor(savedSettings.tableColor || "linear-gradient(135deg, #0b132b, #1c2541)");
     }
+
+    function applyTableColor(bgCss) {
+      document.documentElement.style.setProperty("--table-bg", bgCss);
+    }
+
+    tableColorSelect.addEventListener("change", (e) => {
+      const bgCss = e.target.value;
+      applyTableColor(bgCss);
+      saveSettingsToStorage({ tableColor: bgCss });
+    });
 
     function initAppearanceControls() {
       const activeColorIdx = Math.min(savedSettings.colorIndex || 0, CARD_COLORS.length - 1);
@@ -908,7 +1001,9 @@
 
       const catKey = categorySelect.value;
       const iconsPool = CARD_CATEGORIES[catKey] || CARD_CATEGORIES.symbols;
-      const selectedItems = iconsPool.slice(0, pairCount);
+
+      const poolForSelection = catKey === "mahjong" ? shuffle(iconsPool) : iconsPool;
+      const selectedItems = poolForSelection.slice(0, pairCount);
       const deck = shuffle([...selectedItems, ...selectedItems]);
 
       gameBoard.innerHTML = "";
@@ -939,11 +1034,11 @@
             </div>
           `;
         } else if (catKey === "mahjong") {
-          card.dataset.matchId = item;
-          frontFace.innerHTML = `<div class="mahjong-tile">${item}</div>`;
+          card.dataset.matchId = item.char;
+          frontFace.innerHTML = `<div class="mahjong-tile ${item.color}">${item.char}</div>`;
         } else {
           card.dataset.matchId = item;
-          frontFace.textContent = item;
+          frontFace.innerHTML = `<div class="tile-center-box">${item}</div>`;
         }
 
         card.appendChild(backFace);
@@ -1238,7 +1333,7 @@
 
           bassEnv.gain.setValueAtTime(0.001, now);
           bassEnv.gain.linearRampToValueAtTime(0.55, now + 0.02);
-          bassEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          bassEnv.gain.exponentialRampToValueAtTime(0.001, now + 0.23);
 
           bassOsc.connect(bassEnv);
           bassEnv.connect(masterGainNode);
