@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>波子棋/跳棋Chinese checker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+  body { background: #1e272e; color: #f5f6fa; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 4px 0; overflow-x: hidden; }
+  .header { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px; padding: 4px 8px; }
+  h1 { font-size: 18px; color: #ffdd59; }
+  select, button { padding: 5px 10px; font-size: 13px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+  select { background: #353b48; color: #fff; border: 1px solid #718093; }
+  button { background: #00a8ff; color: #fff; }
+  .status { font-size: 15px; font-weight: bold; margin: 4px 0 6px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; display: inline-block; }
+  .board-wrap { position: relative; width: 100%; max-width: 600px; background: #d2b48c; border-top: 3px solid #8b5a2b; border-bottom: 3px solid #8b5a2b; }
+  canvas { display: block; width: 100%; height: auto; touch-action: none; }
+  .float-tl { position: absolute; top: 8px; left: 6px; background: rgba(30,39,46,0.88); color: #4cd137; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: bold; border: 1px solid #4cd137; }
+  .float-bl { position: absolute; bottom: 10px; left: 6px; }
+  .float-tr { position: absolute; top: 8px; right: 6px; display: flex; flex-direction: column; gap: 5px; }
+  .timer { background: rgba(30,39,46,0.88); color: #ffdd59; padding: 4px 8px; border-radius: 8px; font-size: 12px; font-weight: bold; text-align: center; border: 1px solid #ffdd59; }
+  .btn-pause { background: #9c88ff; font-size: 12px; padding: 6px 8px; }
+  .btn-pause.paused { background: #4cd137; color: #1e272e; }
+  .float-br { position: absolute; bottom: 10px; right: 6px; }
+  .btn-end { display: none; background: #fbc531; color: #1e272e; padding: 9px 12px; font-size: 14px; border: 2px solid #fff; }
+  .modal { display: none; position: absolute; inset: 0; background: rgba(30,39,46,0.92); flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 20; padding: 16px; }
+  .modal.active { display: flex; }
+  .swatch-box { background: #2f3640; padding: 10px 14px; border-radius: 10px; text-align: center; width: 90%; max-width: 300px; }
+  .swatches { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+  .swatch { width: 32px; height: 32px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; }
+  .swatch.selected { border-color: #fff; transform: scale(1.15); }
+  .swatch.disabled { opacity: 0.2; cursor: not-allowed; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>跳棋/波子棋<br>Chinese checker</h1>
+    <div>
+      <select id="modeSel"><option value="pve">單人 vs 電腦</option><option value="pvp">雙人對戰</option></select>
+      <button id="resetBtn">重開</button>
+    </div>
+  </div>
+  <div class="status"><span class="dot" id="turnDot"></span><span id="statusTxt">輪到 紅方 行動</span></div>
+  <div class="board-wrap">
+    <canvas id="cv" width="600" height="650"></canvas>
+    <div class="float-tl" id="bestTxt">🏆 最佳 --:--</div>
+    <div class="float-bl"><button id="colorBtn" style="background:#2f3640; border:1px solid #718093;">🎨 顏色</button></div>
+    <div class="float-tr">
+      <div class="timer" id="timeTxt">⏱ 00:00</div>
+      <button id="pauseBtn" class="btn-pause">⏸ 暫停</button>
+    </div>
+    <div class="float-br"><button id="endBtn" class="btn-end">結束連跳 ✓</button></div>
+    <div class="modal" id="pauseModal">
+      <h2 style="color:#ffdd59;">遊戲已暫停</h2>
+      <button id="resumeBtn" style="background:#4cd137; color:#1e272e; font-size:16px; padding:10px 24px;">▶ 繼續遊戲</button>
+    </div>
+    <div class="modal" id="colorModal">
+      <h3 style="color:#ffdd59;">🎨 自訂珠子顏色</h3>
+      <div class="swatch-box"><div>玩家 1 (下方)</div><div class="swatches" id="p1Sw"></div></div>
+      <div class="swatch-box"><div>電腦 / 玩家 2 (上方)</div><div class="swatches" id="p2Sw"></div></div>
+      <div>
+        <button id="clearBestBtn" style="background:#eb4d4b;">清除紀錄</button>
+        <button id="saveColorBtn" style="background:#4cd137; color:#1e272e;">完成</button>
+      </div>
+    </div>
+  </div>
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const modeSel = document.getElementById('modeSel'), resetBtn = document.getElementById('resetBtn');
+const pauseBtn = document.getElementById('pauseBtn'), resumeBtn = document.getElementById('resumeBtn');
+const endBtn = document.getElementById('endBtn'), statusTxt = document.getElementById('statusTxt');
+const turnDot = document.getElementById('turnDot'), timeTxt = document.getElementById('timeTxt');
+const bestTxt = document.getElementById('bestTxt'), pauseModal = document.getElementById('pauseModal');
+const colorModal = document.getElementById('colorModal'), colorBtn = document.getElementById('colorBtn');
+const saveColorBtn = document.getElementById('saveColorBtn'), clearBestBtn = document.getElementById('clearBestBtn');
+
+const PALETTE = {
+  red: { m: '#e84118', l: '#ff7979', d: '#c23616', bg: 'rgba(232,65,24,0.22)', n: '紅方' },
+  blue: { m: '#0097e6', l: '#7ed6df', d: '#00a8ff', bg: 'rgba(0,151,230,0.22)', n: '藍方' },
+  green: { m: '#20bf6b', l: '#7bed9f', d: '#0fb9b1', bg: 'rgba(32,191,107,0.22)', n: '綠方' },
+  purple: { m: '#8854d0', l: '#d980fa', d: '#5f27cd', bg: 'rgba(136,84,208,0.22)', n: '紫方' },
+  gold: { m: '#f7b731', l: '#ffeaa7', d: '#fa8231', bg: 'rgba(247,183,49,0.24)', n: '金方' },
+  pink: { m: '#eb3b5a', l: '#ff9ff3', d: '#b33771', bg: 'rgba(235,59,90,0.22)', n: '粉方' }
+};
+
+let c1Key = localStorage.getItem('cc_c1') || 'red';
+let c2Key = localStorage.getItem('cc_c2') || 'blue';
+if (!PALETTE[c1Key]) c1Key = 'red';
+if (!PALETTE[c2Key] || c2Key === c1Key) c2Key = c1Key === 'blue' ? 'red' : 'blue';
+
+let bestSec = localStorage.getItem('cc_best') ? parseInt(localStorage.getItem('cc_best'), 10) : null;
+let nodes = [], nodeMap = new Map(), turn = 1, sel = null, moves = [], jumping = false;
+let over = false, paused = false, modalOpen = false, mode = localStorage.getItem('cc_mode') || 'pve';
+let sec = 0, timerId = null, aiId = null;
+modeSel.value = mode;
+
+const DIRS = [{q:1,r:0},{q:-1,r:0},{q:0,r:1},{q:0,r:-1},{q:1,r:-1},{q:-1,r:1}];
+const getC = (p) => p === 1 ? PALETTE[c1Key] : PALETTE[c2Key];
+const fmt = (s) => String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+
+function updateBest() {
+  bestTxt.textContent = bestSec !== null ? '🏆 最佳 ' + fmt(bestSec) : '🏆 最佳 --:--';
+}
+
+function initBoard() {
+  nodes = []; nodeMap.clear();
+  const sp = 43.5, cx = 300, cy = 325;
+  for (let r = -8; r <= 8; r++) {
+    for (let q = -8; q <= 8; q++) {
+      let s = -q - r;
+      if ((Math.abs(q)<=4 && Math.abs(r)<=4) || (Math.abs(r)<=4 && Math.abs(s)<=4) || (Math.abs(q)<=4 && Math.abs(s)<=4)) {
+        let x = cx + sp * (q + r / 2), y = cy + sp * (Math.sqrt(3) / 2 * r);
+        let h = r >= 5 ? 1 : (r <= -5 ? 2 : 0);
+        let n = { q, r, x, y, p: h, h };
+        nodes.push(n); nodeMap.set(q + ',' + r, n);
+      }
+    }
+  }
+}
+
+function getMoves(n, jumpOnly) {
+  let res = [];
+  if (!n || n.p === 0) return res;
+  DIRS.forEach(d => {
+    if (!jumpOnly) {
+      let a = nodeMap.get((n.q+d.q)+','+(n.r+d.r));
+      if (a && a.p === 0) res.push({ t: a, j: false });
+    }
+    let m = nodeMap.get((n.q+d.q)+','+(n.r+d.r));
+    let l = nodeMap.get((n.q+d.q*2)+','+(n.r+d.r*2));
+    if (m && m.p !== 0 && l && l.p === 0) res.push({ t: l, j: true });
+  });
+  return res;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, 600, 650);
+  ctx.strokeStyle = 'rgba(139,90,43,0.35)'; ctx.lineWidth = 2.8;
+  nodes.forEach(n => DIRS.forEach(d => {
+    let nb = nodeMap.get((n.q+d.q)+','+(n.r+d.r));
+    if (nb) { ctx.beginPath(); ctx.moveTo(n.x, n.y); ctx.lineTo(nb.x, nb.y); ctx.stroke(); }
+  }));
+
+  nodes.forEach(n => {
+    ctx.beginPath(); ctx.arc(n.x, n.y, 14.5, 0, Math.PI*2);
+    ctx.fillStyle = n.h === 1 ? PALETTE[c1Key].bg : (n.h === 2 ? PALETTE[c2Key].bg : 'rgba(101,67,33,0.28)');
+    ctx.fill(); ctx.strokeStyle = 'rgba(101,67,33,0.5)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    if (moves.some(m => m.t === n)) {
+      ctx.beginPath(); ctx.arc(n.x, n.y, 13, 0, Math.PI*2);
+      ctx.fillStyle = '#4cd137'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+    }
+
+    if (n.p !== 0) {
+      let c = getC(n.p), r = 19.5;
+      if (sel === n) {
+        ctx.beginPath(); ctx.arc(n.x, n.y, r+4.5, 0, Math.PI*2);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 4.5; ctx.stroke();
+      }
+      let g = ctx.createRadialGradient(n.x-6, n.y-6, 2, n.x, n.y, r);
+      g.addColorStop(0, '#fff'); g.addColorStop(0.25, c.l); g.addColorStop(0.75, c.m); g.addColorStop(1, c.d);
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI*2); ctx.fillStyle = g; ctx.fill();
+    }
+  });
+}
+
+function updateUI() {
+  if (over || paused) return;
+  let c = getC(turn);
+  turnDot.style.background = c.m;
+  statusTxt.textContent = (mode === 'pve' && turn === 2) ? '電腦 (' + c.n + ') 思考中...' : (jumping ? '輪到 ' + c.n + ' 繼續跳' : '輪到 ' + c.n + ' 行動');
+  endBtn.style.display = jumping ? 'block' : 'none';
+}
+
+function nextTurn() {
+  sel = null; moves = []; jumping = false;
+  let targetH = turn === 1 ? 2 : 1;
+  if (nodes.filter(n => n.h === targetH).every(n => n.p === turn)) {
+    over = true; clearInterval(timerId);
+    let winName = getC(turn).n;
+    if (mode === 'pve' && turn === 1 && (bestSec === null || sec < bestSec)) {
+      bestSec = sec; localStorage.setItem('cc_best', bestSec); updateBest();
+      statusTxt.textContent = '🎉 破紀錄！' + winName + ' (' + fmt(sec) + ')';
+    } else {
+      statusTxt.textContent = '🎉 ' + (mode === 'pve' && turn === 2 ? '電腦' : winName) + ' 獲勝！';
+    }
+    endBtn.style.display = 'none'; draw(); return;
+  }
+  turn = turn === 1 ? 2 : 1; updateUI(); draw();
+  if (mode === 'pve' && turn === 2 && !over && !paused && !modalOpen) aiId = setTimeout(aiMove, 400);
+}
+
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (over || paused || modalOpen || (mode === 'pve' && turn === 2)) return;
+  let rect = cv.getBoundingClientRect();
+  let cx = (e.clientX - rect.left) * (600 / rect.width), cy = (e.clientY - rect.top) * (650 / rect.height);
+  let hit = nodes.find(n => Math.hypot(n.x - cx, n.y - cy) <= 25);
+  if (!hit) return;
+
+  let mv = moves.find(m => m.t === hit);
+  if (mv && sel) {
+    hit.p = sel.p; sel.p = 0;
+    if (mv.j) {
+      sel = hit; let nj = getMoves(sel, true);
+      if (nj.length > 0) { jumping = true; moves = nj; updateUI(); draw(); return; }
+    }
+    nextTurn(); return;
+  }
+  if (!jumping && hit.p === turn) { sel = hit; moves = getMoves(sel, false); draw(); }
+});
+
+function aiMove() {
+  if (over || paused || modalOpen || turn !== 2) return;
+  let best = null, bestSc = -9999;
+  nodes.filter(n => n.p === 2).forEach(st => {
+    let dests = new Set(), vis = new Set([st]), q = [st];
+    DIRS.forEach(d => { let a = nodeMap.get((st.q+d.q)+','+(st.r+d.r)); if (a && a.p === 0) dests.add(a); });
+    while (q.length) {
+      let cur = q.shift();
+      DIRS.forEach(d => {
+        let m = nodeMap.get((cur.q+d.q)+','+(cur.r+d.r)), l = nodeMap.get((cur.q+d.q*2)+','+(cur.r+d.r*2));
+        if (m && m.p !== 0 && l && l.p === 0 && !vis.has(l)) { vis.add(l); dests.add(l); q.push(l); }
+      });
+    }
+    dests.forEach(ds => {
+      let sc = (ds.r - st.r)*12 + (ds.h===1 && st.h!==1 ? 18 : 0) - (st.h===1 && ds.h!==1 ? 25 : 0) + (Math.abs(st.q+st.r/2) - Math.abs(ds.q+ds.r/2))*2.5 + Math.random()*0.4;
+      if (sc > bestSc) { bestSc = sc; best = { f: st, t: ds }; }
+    });
+  });
+  if (best) { best.t.p = 2; best.f.p = 0; }
+  nextTurn();
+}
+
+function renderSwatches() {
+  ['p1Sw', 'p2Sw'].forEach((id, idx) => {
+    let el = document.getElementById(id); el.innerHTML = '';
+    Object.keys(PALETTE).forEach(k => {
+      let s = document.createElement('div'); s.className = 'swatch';
+      s.style.background = 'radial-gradient(circle at 30% 30%,' + PALETTE[k].l + ',' + PALETTE[k].m + ')';
+      let myK = idx === 0 ? c1Key : c2Key, otK = idx === 0 ? c2Key : c1Key;
+      if (k === myK) s.classList.add('selected');
+      if (k === otK) s.classList.add('disabled');
+      s.onclick = () => {
+        if (k === otK) return;
+        if (idx === 0) c1Key = k; else c2Key = k;
+        localStorage.setItem('cc_c1', c1Key); localStorage.setItem('cc_c2', c2Key);
+        renderSwatches(); updateUI(); draw();
+      };
+      el.appendChild(s);
+    });
+  });
+}
+
+function togglePause() {
+  if (over || modalOpen) return;
+  paused = !paused; clearTimeout(aiId);
+  pauseBtn.textContent = paused ? '▶ 繼續' : '⏸ 暫停';
+  pauseBtn.classList.toggle('paused', paused);
+  pauseModal.classList.toggle('active', paused);
+  if (paused) statusTxt.textContent = '遊戲暫停中';
+  else { updateUI(); if (mode === 'pve' && turn === 2) aiId = setTimeout(aiMove, 400); }
+}
+
+function reset() {
+  clearTimeout(aiId); clearInterval(timerId);
+  mode = modeSel.value; localStorage.setItem('cc_mode', mode);
+  turn = 1; sel = null; moves = []; jumping = false; over = false; paused = false; modalOpen = false; sec = 0;
+  pauseBtn.textContent = '⏸ 暫停'; pauseBtn.classList.remove('paused');
+  pauseModal.classList.remove('active'); colorModal.classList.remove('active');
+  timeTxt.textContent = '⏱ 00:00'; updateBest();
+  timerId = setInterval(() => { if (!paused && !modalOpen && !over) { sec++; timeTxt.textContent = '⏱ ' + fmt(sec); } }, 1000);
+  initBoard(); updateUI(); draw();
+}
+
+endBtn.onclick = () => { if (jumping && !paused && !modalOpen) nextTurn(); };
+pauseBtn.onclick = togglePause; resumeBtn.onclick = togglePause;
+colorBtn.onclick = () => { if (!paused) { modalOpen = true; clearTimeout(aiId); renderSwatches(); colorModal.classList.add('active'); } };
+saveColorBtn.onclick = () => { modalOpen = false; colorModal.classList.remove('active'); updateUI(); if (mode === 'pve' && turn === 2 && !over) aiId = setTimeout(aiMove, 400); };
+clearBestBtn.onclick = () => { localStorage.removeItem('cc_best'); bestSec = null; updateBest(); };
+modeSel.onchange = reset; resetBtn.onclick = reset;
+reset();
+</script>
+</body>
+</html>
