@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>皇家立體推牌九</title>
+<style>
+  :root { --felt: #0d4a2b; --dark: #062414; --gold: #f5c542; --wood: #3b1c0a; }
+  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #04120a; overflow: hidden; font-family: "PingFang HK", "Microsoft JhengHei", sans-serif; }
+  #app { width: 100%; height: 100%; max-width: 1080px; margin: 0 auto; background: radial-gradient(circle at 50% 45%, #166b40 0%, var(--felt) 62%, var(--dark) 100%); border: 5px solid var(--wood); border-radius: 16px; box-shadow: inset 0 0 35px rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: space-between; padding: 6px 10px; color: #fff; }
+  .top-bar, .mode-bar { display: flex; justify-content: space-between; align-items: center; gap: 4px; flex-shrink: 0; }
+  .mode-bar { justify-content: center; margin-top: 2px; }
+  .bal-box { background: rgba(0,0,0,0.6); border: 1.5px solid var(--gold); border-radius: 24px; padding: 3px 10px; display: flex; align-items: center; gap: 6px; }
+  .bal-val { color: var(--gold); font-size: clamp(14px, 3.6vw, 20px); font-weight: bold; }
+  .btn-m { background: linear-gradient(180deg, #444, #222); color: #fff; border: 1px solid #888; border-radius: 14px; padding: 3px 8px; font-size: clamp(11px, 2.5vw, 13px); cursor: pointer; white-space: nowrap; }
+  .btn-m.active { background: linear-gradient(180deg, #d97706, #92400e); border-color: var(--gold); font-weight: bold; }
+  .table-area { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; align-items: center; min-height: 0; position: relative; }
+  .zone { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .zone-title { background: rgba(0,0,0,0.5); border: 1px solid rgba(245,197,66,0.45); border-radius: 14px; padding: 2px 12px; font-size: clamp(11px, 2.7vw, 15px); color: var(--gold); margin: 2px 0; }
+  .pairs-row { display: flex; justify-content: center; align-items: center; gap: clamp(10px, 3vw, 28px); width: 100%; }
+  .pair-box { background: rgba(0,0,0,0.28); border: 1.5px dashed rgba(255,255,255,0.3); border-radius: 12px; padding: 4px 10px; display: flex; flex-direction: column; align-items: center; min-width: 132px; }
+  .pair-sub { font-size: clamp(11px, 2.5vw, 13px); color: #ddd; margin-bottom: 3px; font-weight: bold; }
+  .pair-res { font-size: clamp(11px, 2.7vw, 14px); color: #5effa8; margin-top: 3px; font-weight: bold; min-height: 17px; }
+  .slots-row { display: flex; justify-content: center; align-items: center; gap: 8px; height: clamp(78px, 13.5vh, 118px); min-width: 96px; }
+  .tile-card { height: 100%; aspect-ratio: 1 / 2.05; flex-shrink: 0; cursor: pointer; transition: transform 0.18s ease; filter: drop-shadow(2px 4px 5px rgba(0,0,0,0.75)); }
+  .tile-card.selected { transform: translateY(-10px) scale(1.05); filter: drop-shadow(0 8px 10px rgba(245,197,66,0.95)); }
+  .tile-card svg { width: 100%; height: 100%; display: block; }
+  .center-arena { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  .stacks-row { display: flex; justify-content: center; align-items: center; gap: clamp(4px, 1.4vw, 12px); height: clamp(54px, 9vh, 82px); margin-bottom: 14px; }
+  .stack-item { height: 100%; aspect-ratio: 1 / 2.05; position: relative; transition: opacity 0.3s, transform 0.3s; }
+  .stack-item.taken { opacity: 0.2; transform: scale(0.88); }
+  .stack-tag { position: absolute; bottom: -14px; left: -6px; right: -6px; text-align: center; font-size: clamp(9px, 2vw, 11px); color: #e2e8f0; white-space: nowrap; }
+  .banner { background: rgba(0,0,0,0.8); border-top: 1.5px solid var(--gold); border-bottom: 1.5px solid var(--gold); padding: 4px 12px; border-radius: 8px; font-size: clamp(12px, 3vw, 16px); text-align: center; width: 96%; max-width: 660px; color: #fff; }
+  .dice-popup { position: absolute; background: rgba(15,10,5,0.95); border: 2px solid var(--gold); border-radius: 16px; padding: 10px 18px; display: none; flex-direction: column; align-items: center; gap: 6px; z-index: 40; box-shadow: 0 10px 25px rgba(0,0,0,0.9); }
+  .dice-list { display: flex; gap: 12px; }
+  .die-cube { width: 44px; height: 44px; background: linear-gradient(145deg, #fff, #d4d4d4); border-radius: 10px; box-shadow: 0 4px 0 #888; display: flex; justify-content: center; align-items: center; font-size: 30px; color: #111; }
+  .die-cube.spin { animation: wobble 0.14s infinite; }
+  @keyframes wobble { 0% { transform: rotate(-14deg) scale(1.06); } 50% { transform: rotate(14deg) scale(0.94); } 100% { transform: rotate(-14deg) scale(1.06); } }
+  .bottom-bar { background: rgba(0,0,0,0.65); border: 1.5px solid rgba(245,197,66,0.45); border-radius: 14px; padding: 6px 10px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px; flex-shrink: 0; }
+  .chips-group { display: flex; justify-content: center; align-items: center; gap: clamp(5px, 1.5vw, 12px); flex: 1 1 auto; }
+  .chip { width: clamp(36px, 9vw, 50px); height: clamp(36px, 9vw, 50px); border-radius: 50%; border: 3px dashed #fff; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: clamp(11px, 2.7vw, 14px); color: #fff; cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.7); text-shadow: 0 1px 2px #000; }
+  .chip:active { transform: translateY(2px); }
+  .c10 { background: radial-gradient(circle, #2b8cbe, #08519c); }
+  .c50 { background: radial-gradient(circle, #31a354, #006d2c); }
+  .c100 { background: radial-gradient(circle, #de2d26, #a50f15); }
+  .c500 { background: radial-gradient(circle, #8856a7, #54278f); }
+  .c1000 { background: radial-gradient(circle, #e69f00, #995c00); border-color: #fff2b2; }
+  .ctrl-right { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+  @media (min-width: 720px) { .ctrl-right { width: auto; } }
+  .bet-box { display: flex; flex-direction: column; align-items: center; min-width: 76px; }
+  .bet-val { font-size: clamp(16px, 3.8vw, 22px); font-weight: bold; color: #ffdf6b; }
+  .btn-act { background: linear-gradient(180deg, #ffd75e 0%, #d49b17 100%); color: #2b1800; border: 1.5px solid #fff2b2; border-radius: 10px; padding: 7px 14px; font-size: clamp(13px, 3.2vw, 17px); font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #7a5400; white-space: nowrap; }
+  .btn-act:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.8); }
+  .btn-hint { background: linear-gradient(180deg, #3b82f6, #1d4ed8); color: #fff; border: 1.5px solid #93c5fd; border-radius: 10px; padding: 7px 10px; font-size: clamp(12px, 3vw, 15px); font-weight: bold; cursor: pointer; box-shadow: 0 3px 0 #1e3a8a; white-space: nowrap; }
+  .btn-hint:disabled { opacity: 0.4; cursor: not-allowed; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 100; padding: 14px; }
+  .modal-body { background: #142b1f; border: 2px solid var(--gold); border-radius: 14px; max-width: 600px; max-height: 85vh; padding: 16px; overflow-y: auto; font-size: 13px; color: #eee; line-height: 1.55; }
+  .modal-body h3 { color: var(--gold); margin-top: 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top-bar">
+    <div class="bal-box">
+      <span style="font-size:12px;color:#ccc;">籌碼</span>
+      <span class="bal-val" id="ui-balance">$10,000</span>
+      <button class="btn-m" onclick="refillChips()">補充</button>
+    </div>
+    <div style="display:flex; gap:5px;">
+      <button class="btn-m" id="btn-sound" onclick="toggleSound()">🔊 音效開</button>
+      <button class="btn-m" onclick="toggleModal(true)">📜 規則</button>
+    </div>
+  </div>
+  <div class="mode-bar">
+    <button class="btn-m active" id="mode-big" onclick="setGameMode('BIG')">大牌九 (4張分前後)</button>
+    <button class="btn-m" id="mode-small" onclick="setGameMode('SMALL')">小牌九 (2張定勝負)</button>
+    <button class="btn-m" id="role-toggle" onclick="togglePlayerBanker()">身份：閒家</button>
+  </div>
+  <div class="table-area">
+    <div class="zone">
+      <div class="zone-title" id="top-zone-title">🏯 莊家 (對家) · 等待開局</div>
+      <div class="pairs-row">
+        <div class="pair-box" id="top-front-box">
+          <div class="pair-sub" id="top-front-label">前檔 (頭牌)</div>
+          <div class="slots-row" id="top-front-slots"></div>
+          <div class="pair-res" id="top-front-res"></div>
+        </div>
+        <div class="pair-box" id="top-back-box">
+          <div class="pair-sub">後檔 (尾牌)</div>
+          <div class="slots-row" id="top-back-slots"></div>
+          <div class="pair-res" id="top-back-res"></div>
+        </div>
+      </div>
+    </div>
+    <div class="center-arena">
+      <div class="stacks-row" id="center-stacks"></div>
+      <div class="banner" id="ui-banner">請點擊下方籌碼下注，再按「擲骰派牌」</div>
+      <div class="dice-popup" id="dice-popup">
+        <div style="color:var(--gold);font-size:14px;font-weight:bold;">擲骰決定逆時針攞牌方位</div>
+        <div class="dice-list">
+          <div class="die-cube" id="die1">⚀</div>
+          <div class="die-cube" id="die2">⚁</div>
+          <div class="die-cube" id="die3">⚂</div>
+        </div>
+        <div id="dice-msg" style="color:#5effa8;font-size:13px;text-align:center;"></div>
+      </div>
+    </div>
+    <div class="zone">
+      <div class="pairs-row">
+        <div class="pair-box" id="bot-front-box">
+          <div class="pair-sub" id="bot-front-label">前檔 (較小組合)</div>
+          <div class="slots-row" id="bot-front-slots"></div>
+          <div class="pair-res" id="bot-front-res"></div>
+        </div>
+        <div class="pair-box" id="bot-back-box">
+          <div class="pair-sub">後檔 (較大組合)</div>
+          <div class="slots-row" id="bot-back-slots"></div>
+          <div class="pair-res" id="bot-back-res"></div>
+        </div>
+      </div>
+      <div class="zone-title" id="bot-zone-title">🀄 玩家 (閒家) · 點擊兩張牌可互換</div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <div class="chips-group">
+      <div class="chip c10" onclick="addBet(10)">10</div>
+      <div class="chip c50" onclick="addBet(50)">50</div>
+      <div class="chip c100" onclick="addBet(100)">100</div>
+      <div class="chip c500" onclick="addBet(500)">500</div>
+      <div class="chip c1000" onclick="addBet(1000)">1K</div>
+      <button class="btn-m" id="btn-clear" onclick="clearBet()">清注</button>
+    </div>
+    <div class="ctrl-right">
+      <div class="bet-box">
+        <span style="font-size:11px;color:#ccc;" id="bet-title">本局注碼</span>
+        <span class="bet-val" id="ui-bet">$100</span>
+      </div>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-hint" id="btn-best" onclick="autoBestArrange()" disabled>最佳擺牌</button>
+        <button class="btn-act" id="btn-main" onclick="onMainButtonClick()">擲骰派牌</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal" id="rules-modal" onclick="toggleModal(false)">
+  <div class="modal-body" onclick="event.stopPropagation()">
+    <h3>📜 傳統牌九規則與牌型大小（維基百科標準）</h3>
+    <ul>
+      <li><strong>大牌九 / 小牌九：</strong>大牌九每人 4 張牌分「前檔」與「後檔」，後檔必須大於或等於前檔。兩檔皆勝贏注、一勝一負和局退注；小牌九每人 2 張牌直接比大小。</li>
+      <li><strong>輪流坐莊模式：</strong>切換為「坐莊」時，系統模擬三家閒家各下注同等金額，由你親自配牌迎戰三家，並享有同點同階「食夾棍（通吃）」優勢。</li>
+      <li><strong>大細雞可變：</strong>單獨「丁三（3點）」與「二四（6點）」可靈活互換作 3 點或 6 點計算。</li>
+      <li><strong>對牌大小順序：</strong>1. 至尊寶（丁三配二四） ＞ 雙天 ＞ 雙地 ＞ 孖人 ＞ 孖和 ＞ 孖梅 ＞ 孖長 ＞ 孖板凳 ＞ 孖斧頭 ＞ 孖紅頭 ＞ 孖高腳 ＞ 孖零霖 ＞ 雜九 ＞ 雜八 ＞ 雜七 ＞ 雜五 ＞ 天王 ＞ 地王 ＞ 天槓 ＞ 地槓 ＞ 天高九 ＞ 地高九。</li>
+      <li><strong>散牌與食夾棍：</strong>無對牌則取兩牌點數總和個位數（9點最大，0點最小）。點數相同比單牌階級（天＞地＞人＞和＞梅＞長＞板＞斧＞紅＞高＞零＞九＞八＞七＞六＞五＞三）；若雙方完全相同則<strong>莊家食夾棍（通吃）</strong>。</li>
+    </ul>
+    <div style="text-align:center;margin-top:10px;">
+      <button class="btn-act" onclick="toggleModal(false)">關閉說明</button>
+    </div>
+  </div>
+</div>
+<script>
+let soundEnabled = true;
+let audioCtx = null;
+
+function playTone(freq, type, duration, vol = 0.15) {
+  if (!soundEnabled) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration);
+  } catch (e) {}
+}
+
+function sfxChip() { playTone(1200, 'sine', 0.08, 0.12); if (navigator.vibrate) navigator.vibrate(15); }
+function sfxDice() { playTone(280 + Math.random()*180, 'triangle', 0.06, 0.14); }
+function sfxTile() { playTone(520, 'square', 0.07, 0.08); if (navigator.vibrate) navigator.vibrate(20); }
+function sfxWin()  { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => playTone(f, 'triangle', 0.25, 0.16), i * 90)); }
+function sfxLose() { [350, 290, 220].forEach((f, i) => setTimeout(() => playTone(f, 'sawtooth', 0.25, 0.12), i * 110)); }
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('btn-sound').textContent = soundEnabled ? '🔊 音效開' : '🔇 靜音';
+}
+
+const p = (x, y, c) => ({ x, y, c });
+const TILES_DB = [
+  { id:'tian',  name:'天牌', pts:12, pairRank:21, singleRank:16, top:[p(28,22,'r'),p(72,22,'w'),p(28,50,'r'),p(72,50,'w'),p(28,78,'r'),p(72,78,'w')], bot:[p(28,22,'r'),p(72,22,'w'),p(28,50,'r'),p(72,50,'w'),p(28,78,'r'),p(72,78,'w')] },
+  { id:'di',    name:'地牌', pts:2,  pairRank:20, singleRank:15, top:[p(50,50,'r')], bot:[p(50,50,'r')] },
+  { id:'ren',   name:'人牌', pts:8,  pairRank:19, singleRank:14, top:[p(28,28,'r'),p(72,28,'r'),p(28,72,'r'),p(72,72,'r')], bot:[p(28,28,'r'),p(72,28,'r'),p(28,72,'r'),p(72,72,'r')] },
+  { id:'he',    name:'和牌', pts:4,  pairRank:18, singleRank:13, top:[p(50,50,'r')], bot:[p(26,25,'w'),p(50,50,'w'),p(74,75,'w')] },
+  { id:'mei',   name:'梅花', pts:10, pairRank:17, singleRank:12, top:[p(26,25,'w'),p(74,25,'w'),p(50,50,'w'),p(26,75,'w'),p(74,75,'w')], bot:[p(26,25,'w'),p(74,25,'w'),p(50,50,'w'),p(26,75,'w'),p(74,75,'w')] },
+  { id:'chang', name:'長三', pts:6,  pairRank:16, singleRank:11, top:[p(26,25,'w'),p(50,50,'w'),p(74,75,'w')], bot:[p(26,25,'w'),p(50,50,'w'),p(74,75,'w')] },
+  { id:'ban',   name:'板凳', pts:4,  pairRank:15, singleRank:10, top:[p(28,35,'w'),p(72,35,'w')], bot:[p(28,65,'w'),p(72,65,'w')] },
+  { id:'fu',    name:'斧頭', pts:11, pairRank:14, singleRank:9,  top:[p(26,25,'w'),p(74,25,'w'),p(50,50,'w'),p(26,75,'w'),p(74,75,'w')], bot:[p(28,22,'w'),p(72,22,'w'),p(28,50,'w'),p(72,50,'w'),p(28,78,'w'),p(72,78,'w')] },
+  { id:'hong',  name:'紅頭', pts:10, pairRank:13, singleRank:8,  top:[p(28,28,'r'),p(72,28,'r'),p(28,72,'r'),p(72,72,'r')], bot:[p(28,22,'w'),p(72,22,'w'),p(28,50,'w'),p(72,50,'w'),p(28,78,'w'),p(72,78,'w')] },
+  { id:'gao',   name:'高腳', pts:7,  pairRank:12, singleRank:7,  top:[p(50,50,'r')], bot:[p(28,22,'w'),p(72,22,'w'),p(28,50,'w'),p(72,50,'w'),p(28,78,'w'),p(72,78,'w')] },
+  { id:'ling',  name:'零霖', pts:6,  pairRank:11, singleRank:6,  top:[p(50,50,'r')], bot:[p(26,25,'w'),p(74,25,'w'),p(50,50,'w'),p(26,75,'w'),p(74,75,'w')] },
+  { id:'za9a',  name:'雜九', pts:9,  pairRank:10, singleRank:5,  single:true, top:[p(28,28,'r'),p(72,28,'r'),p(28,72,'r'),p(72,72,'r')], bot:[p(26,25,'w'),p(74,25,'w'),p(50,50,'w'),p(26,75,'w'),p(74,75,'w')] },
+  { id:'za9b',  name:'雜九', pts:9,  pairRank:10, singleRank:5,  single:true, top:[p(26,25,'w'),p(50,50,'w'),p(74,75,'w')], bot:[p(28,22,'w'),p(72,22,'w'),p(28,50,'w'),p(72,50,'w'),p(28,78,'w'),p(72,78,'w')] },
+  { id:'za8a',  name:'雜八', pts:8,  pairRank:9,  singleRank:4,  single:true, top:[p(28,35,'w'),p(72,35,'w')], bot:[p(28,22,'w'),p(72,22,'w'),p(28,50,'w'),p(72,50,'w'),p(28,78,'w'),p(72,78,'w')] },
+  { id:'za8b',  name:'雜八', pts:8,  pairRank:9,  singleRank:4,  single:true, top:[p(26,25,'w'),p(50,50,'w'),p(74,75,'w')], bot:[p(26,25,'w'),p(74,25,'w'),p(50,50,'w'),p(26,75,'w'),p(74,75,'w')] },
+  { id:'za7a',  name:'雜七', pts:7,  pairRank:8,  singleRank:3,  single:true, top:[p(28,28,'r'),p(72,28,'r'),p(28,72,'r'),p(72,72,'r')], bot:[p(26,25,'w'),p(50,50,'w'),p(74,75,'w')] },
+  { id:'za7b',  name:'雜七', pts:7,  pairRank:8,  singleRank:3,  single:true, top:[p(28,35,'w'),p(72,35,'w')], bot:[p(26,25,'w'),p(74,25,'w'),p(50,50,'w'),p(26,75,'w'),p(74,75,'w')] },
+  { id:'za5a',  name:'雜五', pts:5,  pairRank:7,  singleRank:1,  single:true, top:[p(28,25,'r'),p(72,25,'r'),p(50,50,'r'),p(28,75,'r'),p(72,75,'r')], bot:[] },
+  { id:'za5b',  name:'雜五', pts:5,  pairRank:7,  singleRank:1,  single:true, top:[p(28,35,'w'),p(72,35,'w')], bot:[p(26,25,'w'),p(50,50,'w'),p(74,75,'w')] },
+  { id:'er4',   name:'二四', pts:6,  altPts:3, pairRank:22, singleRank:2, single:true, top:[p(28,28,'r'),p(72,28,'r'),p(28,72,'r'),p(72,72,'r')], bot:[p(28,50,'w'),p(72,50,'w')] },
+  { id:'ding3', name:'丁三', pts:3,  altPts:6, pairRank:22, singleRank:0, single:true, top:[p(50,50,'r')], bot:[p(28,50,'w'),p(72,50,'w')] }
+];
+function createFullDeck() {
+  const deck = [];
+  TILES_DB.forEach(item => {
+    deck.push({ ...item, uid: item.id + '_1' });
+    if (!item.single) deck.push({ ...item, uid: item.id + '_2' });
+  });
+  return deck;
+}
+
+function renderTileSVG(tile, faceUp = true, isStack = false) {
+  if (!faceUp) {
+    return `<svg viewBox="0 0 100 205" xmlns="http://w3.org"><rect x="6" y="8" width="90" height="192" rx="12" fill="#09090b"/><rect x="3" y="4" width="90" height="192" rx="12" fill="#dfd5be"/><rect x="1" y="1" width="90" height="192" rx="12" fill="#1c1917" stroke="#b8860b" stroke-width="2.5"/><rect x="9" y="9" width="74" height="176" rx="7" fill="none" stroke="#d4af37" stroke-width="1.5" stroke-dasharray="4 2"/>${isStack ? '<line x1="6" y1="194" x2="90" y2="194" stroke="#e5dec9" stroke-width="2.5"/><line x1="8" y1="199" x2="92" y2="199" stroke="#cfc5ab" stroke-width="2.5"/>' : ''}</svg>`;
+  }
+  const renderDots = (list, yStart, yHeight) => {
+    const r = list.length >= 5 ? 8.2 : 9.8;
+    return list.map(d => {
+      const cx = 10 + (d.x / 100) * 72;
+      const cy = yStart + (d.y / 100) * yHeight;
+      const fill = d.c === 'r' ? '#ef4444' : '#f8fafc';
+      const inner = d.c === 'r' ? '#b91c1c' : '#cbd5e1';
+      return `<circle cx="${cx}" cy="${cy + 1.2}" r="${r + 1}" fill="#000"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="${inner}" stroke-width="1.2"/><circle cx="${cx - r*0.28}" cy="${cy - r*0.28}" r="${r*0.25}" fill="#fff" opacity="0.65"/>`;
+    }).join('');
+  };
+  const dotsHTML = tile.id === 'za5a' ? renderDots(tile.top, 18, 158) : renderDots(tile.top, 10, 84) + renderDots(tile.bot, 98, 84);
+  return `<svg viewBox="0 0 100 205" xmlns="http://w3.org"><rect x="6" y="8" width="90" height="192" rx="12" fill="#09090b"/><rect x="3" y="4" width="90" height="192" rx="12" fill="#e5dcc5"/><rect x="1" y="1" width="90" height="192" rx="12" fill="#18181b" stroke="#52525b" stroke-width="1.5"/>${dotsHTML}</svg>`;
+}
+
+const PAIR_NAMES = { 21:'雙天',20:'雙地',19:'孖人',18:'孖和',17:'孖梅',16:'孖長',15:'孖板凳',14:'孖斧頭',13:'孖紅頭',12:'孖高腳',11:'孖零霖',10:'雜九對',9:'雜八對',8:'雜七對',7:'雜五對' };
+const LEAD_NAMES = ['丁三','雜五','二四','雜七','雜八','雜九','零霖','高腳','紅頭','斧頭','板凳','長三','梅花','和牌','人牌','地牌','天牌'];
+
+function evaluateTwoTiles(t1, t2) {
+  const ids = [t1.id, t2.id];
+  const highSingle = Math.max(t1.singleRank, t2.singleRank);
+  if (ids.includes('ding3') && ids.includes('er4')) return { tier: 100, highSingle, label: '👑 至尊寶' };
+  if (t1.pairRank === t2.pairRank && t1.pairRank >= 7 && t1.pairRank <= 21) return { tier: 78 + t1.pairRank, highSingle, label: `🔥 ${PAIR_NAMES[t1.pairRank]}` };
+  const hasTian = ids.includes('tian');
+  const hasDi = ids.includes('di');
+  const other = (t1.id === 'tian' || t1.id === 'di') ? t2 : t1;
+  if (hasTian && other.pts === 9) return { tier: 79, highSingle, label: '⭐ 天王' };
+  if (hasDi && other.pts === 9) return { tier: 78, highSingle, label: '⭐ 地王' };
+  if (hasTian && other.pts === 8) return { tier: 77, highSingle, label: '⚡ 天槓' };
+  if (hasDi && other.pts === 8) return { tier: 76, highSingle, label: '⚡ 地槓' };
+  if (hasTian && other.pts === 7) return { tier: 75, highSingle, label: '✨ 天高九' };
+  if (hasDi && other.pts === 7) return { tier: 74, highSingle, label: '✨ 地高九' };
+  const opts1 = t1.altPts ? [t1.pts, t1.altPts] : [t1.pts];
+  const opts2 = t2.altPts ? [t2.pts, t2.altPts] : [t2.pts];
+  let bestMod = -1, flexed = false;
+  opts1.forEach((v1, i1) => opts2.forEach((v2, i2) => {
+    const m = (v1 + v2) % 10;
+    if (m > bestMod) { bestMod = m; flexed = (i1 > 0 || i2 > 0); }
+  }));
+  const label = bestMod === 0 ? '散牌 0點(憋十)' : `${LEAD_NAMES.at(highSingle)}${bestMod}點${flexed ? '(變)' : ''}`;
+  return { tier: bestMod, highSingle, label };
+}
+
+function compareTwoHands(evalA, evalB, aIsBanker = false) {
+  if (evalA.tier !== evalB.tier) return evalA.tier > evalB.tier ? 1 : -1;
+  if (evalA.highSingle !== evalB.highSingle) return evalA.highSingle > evalB.highSingle ? 1 : -1;
+  return aIsBanker ? 1 : -1;
+}
+
+function getBestFourSplit(tiles) {
+  const splits = [{ a:0, b:1, c:2, d:3 }, { a:0, b:2, c:1, d:3 }, { a:0, b:3, c:1, d:2 }];
+  let bestScore = -99999, bestOrder = tiles.slice();
+  splits.forEach(sp => {
+    const e1 = evaluateTwoTiles(tiles.at(sp.a), tiles.at(sp.b));
+    const e2 = evaluateTwoTiles(tiles.at(sp.c), tiles.at(sp.d));
+    let f1 = sp.a, f2 = sp.b, b1 = sp.c, b2 = sp.d, ef = e1, eb = e2;
+    if (compareTwoHands(e1, e2, false) === 1) { f1 = sp.c; f2 = sp.d; b1 = sp.a; b2 = sp.b; ef = e2; eb = e1; }
+    const score = ef.tier * 12 + ef.highSingle * 0.5 + eb.tier * 10 + eb.highSingle * 0.3;
+    if (score > bestScore) { bestScore = score; bestOrder = [tiles.at(f1), tiles.at(f2), tiles.at(b1), tiles.at(b2)]; }
+  });
+  return bestOrder;
+}
+const SAVE_KEY = 'paigow_chips_v6';
+let balance = parseInt(localStorage.getItem(SAVE_KEY), 10);
+if (isNaN(balance) || balance < 0) balance = 10000;
+let betAmount = 100, gameMode = 'BIG', playerIsBanker = false, phase = 'BET';
+let aiTiles = [], myTiles = [], pickedIdx = null;
+
+function updateStorage() {
+  try { localStorage.setItem(SAVE_KEY, balance); } catch (e) {}
+  document.getElementById('ui-balance').textContent = `$${balance.toLocaleString()}`;
+}
+function refillChips() {
+  if (phase !== 'BET') return;
+  sfxChip(); balance = 10000; updateStorage(); setBanner('籌碼已補充至 $10,000！');
+}
+function addBet(val) {
+  if (phase !== 'BET') return;
+  const maxBet = playerIsBanker ? Math.floor(balance / 3) : balance;
+  if (betAmount + val > maxBet) { setBanner(playerIsBanker ? '坐莊需準備 3 倍賠付餘額！' : '總籌碼不足！'); return; }
+  sfxChip(); betAmount += val; refreshBetUI();
+}
+function clearBet() {
+  if (phase !== 'BET') return;
+  sfxChip(); betAmount = 0; refreshBetUI();
+}
+function refreshBetUI() {
+  document.getElementById('ui-bet').textContent = `$${betAmount.toLocaleString()}`;
+  const reqBalance = playerIsBanker ? betAmount * 3 : betAmount;
+  document.getElementById('btn-main').disabled = (betAmount <= 0 || reqBalance > balance);
+}
+function setBanner(txt) { document.getElementById('ui-banner').textContent = txt; }
+function toggleModal(show) { document.getElementById('rules-modal').style.display = show ? 'flex' : 'none'; }
+
+function setGameMode(mode) {
+  if (phase !== 'BET') return;
+  sfxChip(); gameMode = mode;
+  document.getElementById('mode-big').classList.toggle('active', mode === 'BIG');
+  document.getElementById('mode-small').classList.toggle('active', mode === 'SMALL');
+  document.getElementById('top-back-box').style.display = mode === 'BIG' ? 'flex' : 'none';
+  document.getElementById('bot-back-box').style.display = mode === 'BIG' ? 'flex' : 'none';
+  document.getElementById('top-front-label').textContent = mode === 'BIG' ? '前檔 (頭牌)' : '對手手牌';
+  document.getElementById('bot-front-label').textContent = mode === 'BIG' ? '前檔 (較小組合)' : '玩家手牌';
+  setBanner(mode === 'BIG' ? '已切換【大牌九】：每人 4 張分前後檔' : '已切換【小牌九】：每人 2 張一翻兩瞪眼');
+}
+
+function togglePlayerBanker() {
+  if (phase !== 'BET') return;
+  sfxChip(); playerIsBanker = !playerIsBanker;
+  const roleBtn = document.getElementById('role-toggle');
+  roleBtn.textContent = playerIsBanker ? '身份：坐莊(收三家)' : '身份：閒家';
+  roleBtn.classList.toggle('active', playerIsBanker);
+  document.getElementById('top-zone-title').textContent = playerIsBanker ? '🀄 電腦閒家 (三門代表) · 等待開局' : '🏯 莊家 (對家) · 等待開局';
+  document.getElementById('bot-zone-title').textContent = playerIsBanker ? '🏯 玩家坐莊 (食夾棍通吃) · 點擊兩張牌可互換' : '🀄 玩家 (閒家) · 點擊兩張牌可互換';
+  document.getElementById('bet-title').textContent = playerIsBanker ? '每門注碼(x3)' : '本局注碼';
+  if (playerIsBanker && betAmount * 3 > balance) betAmount = Math.floor(balance / 3 / 10) * 10;
+  refreshBetUI();
+}
+
+function renderStacks(takenList = []) {
+  const box = document.getElementById('center-stacks');
+  const tags = ['莊', '下', '對', '上', '莊', '下', '對', '上'];
+  box.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    const div = document.createElement('div');
+    div.className = 'stack-item' + (takenList.includes(i) ? ' taken' : '');
+    div.innerHTML = renderTileSVG(null, false, true) + `<div class="stack-tag">${i+1}(${tags.at(i)})</div>`;
+    box.appendChild(div);
+  }
+}
+
+function renderAllHands(revealAI = false) {
+  ['top-front-slots','top-back-slots','bot-front-slots','bot-back-slots'].forEach(id => document.getElementById(id).innerHTML = '');
+  aiTiles.forEach((tile, idx) => {
+    const slotId = (gameMode === 'SMALL' || idx < 2) ? 'top-front-slots' : 'top-back-slots';
+    const card = document.createElement('div');
+    card.className = 'tile-card';
+    card.innerHTML = renderTileSVG(tile, revealAI, false);
+    document.getElementById(slotId).appendChild(card);
+  });
+  myTiles.forEach((tile, idx) => {
+    const slotId = (gameMode === 'SMALL' || idx < 2) ? 'bot-front-slots' : 'bot-back-slots';
+    const card = document.createElement('div');
+    card.className = 'tile-card' + (pickedIdx === idx ? ' selected' : '');
+    card.innerHTML = renderTileSVG(tile, true, false);
+    if (phase === 'ARRANGE' && gameMode === 'BIG') card.onclick = () => onTileSwapClick(idx);
+    document.getElementById(slotId).appendChild(card);
+  });
+  if (myTiles.length >= 2) {
+    document.getElementById('bot-front-res').textContent = evaluateTwoTiles(myTiles.at(0), myTiles.at(1)).label;
+    document.getElementById('bot-back-res').textContent = (gameMode === 'BIG' && myTiles.length === 4) ? evaluateTwoTiles(myTiles.at(2), myTiles.at(3)).label : '';
+  } else {
+    document.getElementById('bot-front-res').textContent = '';
+    document.getElementById('bot-back-res').textContent = '';
+  }
+  if (revealAI && aiTiles.length >= 2) {
+    document.getElementById('top-front-res').textContent = evaluateTwoTiles(aiTiles.at(0), aiTiles.at(1)).label;
+    if (gameMode === 'BIG' && aiTiles.length === 4) document.getElementById('top-back-res').textContent = evaluateTwoTiles(aiTiles.at(2), aiTiles.at(3)).label;
+  } else {
+    document.getElementById('top-front-res').textContent = '';
+    document.getElementById('top-back-res').textContent = '';
+  }
+}
+
+function onTileSwapClick(idx) {
+  if (phase !== 'ARRANGE' || gameMode !== 'BIG') return;
+  sfxTile();
+  if (pickedIdx === null) { pickedIdx = idx; }
+  else if (pickedIdx === idx) { pickedIdx = null; }
+  else {
+    const tmp = myTiles.at(pickedIdx);
+    myTiles.splice(pickedIdx, 1, myTiles.at(idx));
+    myTiles.splice(idx, 1, tmp);
+    pickedIdx = null;
+  }
+  renderAllHands(false);
+}
+
+function autoBestArrange() {
+  if (phase !== 'ARRANGE' || gameMode !== 'BIG') return;
+  sfxTile(); myTiles = getBestFourSplit(myTiles); pickedIdx = null; renderAllHands(false);
+  setBanner('已套用最佳擺牌組合！確認後按「開牌比大小」');
+}
+
+function onMainButtonClick() {
+  if (phase === 'BET') startRollAndDeal();
+  else if (phase === 'ARRANGE') finishShowdown();
+  else if (phase === 'END') resetToBet();
+}
+
+function startRollAndDeal() {
+  const stake = playerIsBanker ? betAmount * 3 : betAmount;
+  if (betAmount <= 0 || stake > balance) return;
+  balance -= stake; updateStorage(); phase = 'ROLL';
+  document.getElementById('btn-main').disabled = true;
+  document.getElementById('btn-clear').disabled = true;
+  renderStacks([]);
+
+  const deck = createFullDeck();
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const temp = deck.at(i);
+    deck.splice(i, 1, deck.at(j));
+    deck.splice(j, 1, temp);
+  }
+  const stacks = [];
+  for (let i = 0; i < 8; i++) stacks.push(deck.slice(i * 4, (i + 1) * 4));
+
+  const popup = document.getElementById('dice-popup');
+  const d1 = document.getElementById('die1'), d2 = document.getElementById('die2'), d3 = document.getElementById('die3');
+  const dMsg = document.getElementById('dice-msg');
+  popup.style.display = 'flex'; dMsg.textContent = '';
+  [d1, d2, d3].forEach(el => el.classList.add('spin'));
+  setBanner('🎲 正在搖骰決定起牌方位...');
+
+  const faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+  let count = 0;
+  const timer = setInterval(() => {
+    sfxDice();
+    d1.textContent = faces.at(Math.floor(Math.random()*6));
+    d2.textContent = faces.at(Math.floor(Math.random()*6));
+    d3.textContent = faces.at(Math.floor(Math.random()*6));
+    count++;
+    if (count >= 12) {
+      clearInterval(timer);
+      [d1, d2, d3].forEach(el => el.classList.remove('spin'));
+      const r1 = Math.floor(Math.random()*6) + 1, r2 = Math.floor(Math.random()*6) + 1, r3 = Math.floor(Math.random()*6) + 1;
+      const sum = r1 + r2 + r3;
+      d1.textContent = faces.at(r1-1); d2.textContent = faces.at(r2-1); d3.textContent = faces.at(r3-1);
+
+      const seats = ['莊家', '下家', '對家', '上家'];
+      const startSeat = (sum - 1) % 4, startStack = (sum - 1) % 8;
+      let s0 = 0, s2 = 2;
+      for (let step = 0; step < 4; step++) {
+        const seat = (startSeat + step) % 4, stIdx = (startStack + step) % 8;
+        if (seat === 0) s0 = stIdx;
+        if (seat === 2) s2 = stIdx;
+      }
+      dMsg.textContent = `擲出 ${r1}+${r2}+${r3} = ${sum} 點！由【${seats.at(startSeat)}】起牌`;
+      setBanner(`🎲 ${sum} 點由${seats.at(startSeat)}起牌，逆時針派發骨牌...`);
+
+      setTimeout(() => {
+        sfxTile(); renderStacks([s0, s2]);
+        const myRaw = playerIsBanker ? stacks.at(s0) : stacks.at(s2);
+        const aiRaw = playerIsBanker ? stacks.at(s2) : stacks.at(s0);
+        myTiles = gameMode === 'BIG' ? myRaw : myRaw.slice(0, 2);
+        aiTiles = gameMode === 'BIG' ? aiRaw : aiRaw.slice(0, 2);
+        renderAllHands(false);
+      }, 950);
+
+      setTimeout(() => {
+        popup.style.display = 'none';
+        if (gameMode === 'SMALL') { finishShowdown(); }
+        else {
+          phase = 'ARRANGE';
+          document.getElementById('btn-best').disabled = false;
+          const btn = document.getElementById('btn-main');
+          btn.textContent = '開牌比大小'; btn.disabled = false;
+          setBanner('點擊兩張牌調整「前檔/後檔」，完成後按「開牌比大小」');
+        }
+      }, 2000);
+    }
+  }, 80);
+}
+
+function finishShowdown() {
+  if (gameMode === 'BIG') {
+    const pf = evaluateTwoTiles(myTiles.at(0), myTiles.at(1));
+    const pb = evaluateTwoTiles(myTiles.at(2), myTiles.at(3));
+    if (compareTwoHands(pf, pb, false) === 1) {
+      sfxLose(); setBanner('⚠️ 違規擺牌：後檔必須大於或等於前檔！請對調或按「最佳擺牌」'); return;
+    }
+    aiTiles = getBestFourSplit(aiTiles);
+  }
+  phase = 'END'; pickedIdx = null;
+  document.getElementById('btn-best').disabled = true;
+  renderAllHands(true);
+
+  const mult = playerIsBanker ? 3 : 1, totalStake = betAmount * mult;
+  if (gameMode === 'SMALL') {
+    const win = compareTwoHands(evaluateTwoTiles(myTiles.at(0), myTiles.at(1)), evaluateTwoTiles(aiTiles.at(0), aiTiles.at(1)), playerIsBanker) === 1;
+    if (win) { sfxWin(); balance += totalStake * 2; setBanner(`🎉 小牌九勝出！贏得 $${totalStake.toLocaleString()}！`); }
+    else { sfxLose(); setBanner(`💸 小牌九落敗，損失 $${totalStake.toLocaleString()}。`); }
+  } else {
+    const rFront = compareTwoHands(evaluateTwoTiles(myTiles.at(0), myTiles.at(1)), evaluateTwoTiles(aiTiles.at(0), aiTiles.at(1)), playerIsBanker);
+    const rBack = compareTwoHands(evaluateTwoTiles(myTiles.at(2), myTiles.at(3)), evaluateTwoTiles(aiTiles.at(2), aiTiles.at(3)), playerIsBanker);
+    if (rFront === 1 && rBack === 1) { sfxWin(); balance += totalStake * 2; setBanner(`🎉 雙殺大勝！(前檔贏、後檔贏) 贏得 $${totalStake.toLocaleString()}！`); }
+    else if (rFront === -1 && rBack === -1) { sfxLose(); setBanner(`💸 雙敗輸注 (前檔輸、後檔輸) 損失 $${totalStake.toLocaleString()}。`); }
+    else { sfxChip(); balance += totalStake; setBanner(`🤝 一勝一負和局，退回本金 $${totalStake.toLocaleString()}。`); }
+  }
+  updateStorage();
+  const btn = document.getElementById('btn-main');
+  btn.textContent = '下一局'; btn.disabled = false;
+}
+
+function resetToBet() {
+  sfxChip(); phase = 'BET'; aiTiles = []; myTiles = []; pickedIdx = null;
+  renderAllHands(false); renderStacks([]);
+  document.getElementById('btn-clear').disabled = false;
+  const maxAllowed = playerIsBanker ? Math.floor(balance / 3) : balance;
+  if (betAmount > maxAllowed) betAmount = maxAllowed > 0 ? maxAllowed : 0;
+  refreshBetUI();
+  document.getElementById('btn-main').textContent = '擲骰派牌';
+  setBanner('請選擇籌碼下注，點擊「擲骰派牌」開始新局');
+}
+
+updateStorage();
+refreshBetUI();
+renderStacks([]);
+</script>
+</body>
+</html>
+
