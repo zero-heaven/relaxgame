@@ -1,0 +1,3234 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+ <title>3D 真實感中國象棋大師版 | 中國象棋</title>
+ <!-- Tailwind CSS -->
+ <script src="https://cdn.tailwindcss.com"></script>
+ <!-- Three.js & PeerJS -->
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+ <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+ <!-- Google Fonts: Noto Serif TC & Inter -->
+ <link rel="preconnect" href="https://fonts.googleapis.com">
+ <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+ <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Serif+TC:wght@600;700;900&display=swap" rel="stylesheet">
+ <style>
+ * {
+ box-sizing: border-box;
+ -webkit-tap-highlight-color: transparent;
+ user-select: none;
+ }
+ html, body {
+ margin: 0;
+ padding: 0;
+ width: 100%;
+ height: 100%;
+ overflow: hidden;
+ font-family: 'Inter', 'Noto Serif TC', serif;
+ background: radial-gradient(circle at center, #2c1e16 0%, #140d09 100%);
+ color: #f5ebe0;
+ }
+ .font-serif-tc {
+ font-family: 'Noto Serif TC', serif;
+ }
+ #canvas-container {
+ position: fixed;
+ inset: 0;
+ width: 100%;
+ height: 100%;
+ z-index: 1;
+ touch-action: none;
+ }
+ /* Custom scrollbar */
+ ::-webkit-scrollbar {
+ width: 6px;
+ height: 6px;
+ }
+ ::-webkit-scrollbar-track {
+ background: rgba(20, 13, 9, 0.5);
+ border-radius: 999px;
+ }
+ ::-webkit-scrollbar-thumb {
+ background: rgba(217, 160, 91, 0.5);
+ border-radius: 999px;
+ }
+ ::-webkit-scrollbar-thumb:hover {
+ background: rgba(217, 160, 91, 0.8);
+ }
+ /* Glassmorphism panels */
+ .glass-panel {
+ background: rgba(28, 19, 14, 0.86);
+ backdrop-filter: blur(12px);
+ -webkit-backdrop-filter: blur(12px);
+ border: 1px solid rgba(217, 160, 91, 0.3);
+ box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+ }
+ .gold-btn {
+ background: linear-gradient(135deg, #d97706 0%, #92400e 100%);
+ border: 1px solid rgba(251, 191, 36, 0.5);
+ box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+ transition: all 0.15s ease;
+ }
+ .gold-btn:hover {
+ filter: brightness(1.12);
+ transform: translateY(-1px);
+ }
+ .gold-btn:active {
+ transform: translateY(1px) scale(0.98);
+ }
+ .wood-btn {
+ background: rgba(58, 39, 28, 0.85);
+ border: 1px solid rgba(217, 160, 91, 0.35);
+ transition: all 0.15s ease;
+ }
+ .wood-btn:hover {
+ background: rgba(82, 55, 39, 0.95);
+ border-color: rgba(251, 191, 36, 0.65);
+ }
+ .wood-btn:active {
+ transform: scale(0.97);
+ }
+ /* Custom Styled Select */
+ .wood-select {
+ background-color: #261912;
+ color: #fef3c7;
+ border: 1px solid rgba(217, 160, 91, 0.45);
+ border-radius: 0.65rem;
+ outline: none;
+ cursor: pointer;
+ transition: border-color 0.15s ease, box-shadow 0.15s ease;
+ }
+ .wood-select:hover, .wood-select:focus {
+ border-color: #fbbf24;
+ box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.2);
+ }
+ .wood-select option {
+ background-color: #1f140e;
+ color: #fef3c7;
+ }
+ /* Check Banner Animation */
+ @keyframes checkPulse {
+ 0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+ 20% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+ 80% { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+ 100% { transform: translate(-50%, -50%) scale(0.95); opacity: 0; }
+ }
+ .check-alert-anim {
+ animation: checkPulse 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+ }
+
+ /* Mobile Safe-Area & Modal Bottom Scroll Fix */
+ .modal-backdrop {
+   align-items: center;
+   padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem));
+ }
+ .modal-card {
+   max-height: calc(100dvh - 2rem);
+   overflow-y: auto;
+   -webkit-overflow-scrolling: touch;
+   overscroll-behavior: contain;
+   padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px));
+ }
+ @media (max-width: 640px) {
+   .modal-backdrop {
+     align-items: flex-start;
+     padding-top: 0.75rem;
+     padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
+   }
+   .modal-card {
+     max-height: calc(100dvh - 1.5rem);
+     padding-bottom: calc(3rem + env(safe-area-inset-bottom, 1rem));
+   }
+ }
+
+ /* Adaptive Layout Modes (Mobile Portrait, Mobile Landscape, Tablet, Desktop) */
+ body.device-mobile-landscape #top-hud {
+ right: auto;
+ max-width: 280px;
+ flex-direction: column;
+ align-items: stretch;
+ padding: 0.45rem;
+ gap: 0.35rem;
+ }
+ body.device-mobile-landscape #bottom-hud {
+ left: auto;
+ top: 0.45rem;
+ bottom: 0.45rem;
+ right: 0.45rem;
+ align-items: center;
+ padding: 0;
+ }
+ body.device-mobile-landscape #bottom-hud-inner {
+ flex-direction: column;
+ padding: 0.4rem;
+ gap: 0.35rem;
+ }
+ body.device-mobile-landscape #bottom-hud-inner button,
+ body.device-mobile-landscape #bottom-hud-inner select,
+ body.device-mobile-landscape #bottom-hud-inner .hud-control-group {
+ width: 100%;
+ justify-content: center;
+ padding: 0.4rem 0.55rem;
+ font-size: 0.72rem;
+ }
+ body.device-mobile-landscape #learning-banner {
+ top: 0.5rem;
+ left: 50%;
+ width: 48%;
+ max-width: 420px;
+ padding: 0.5rem 0.75rem;
+ }
+ body.device-mobile-portrait #top-hud {
+ padding: 0.25rem 0.3rem;
+ gap: 0.25rem;
+ align-items: stretch;
+ }
+ body.device-mobile-portrait #hud-title-card {
+ order: 1;
+ flex: 1 1 auto;
+ min-width: 0;
+ padding: 0.25rem 0.45rem;
+ gap: 0.4rem;
+ border-radius: 0.85rem;
+ }
+ body.device-mobile-portrait #hud-logo-badge {
+ width: 1.65rem;
+ height: 1.65rem;
+ }
+ body.device-mobile-portrait #hud-logo-badge span {
+ font-size: 0.85rem;
+ }
+ body.device-mobile-portrait #hud-title-card h1 {
+ font-size: 0.76rem;
+ }
+ body.device-mobile-portrait #deviceBadge {
+ font-size: 0.6rem;
+ padding: 0.05rem 0.35rem;
+ }
+ body.device-mobile-portrait #hud-title-card .font-mono {
+ font-size: 0.62rem;
+ margin-top: 0;
+ gap: 0.25rem;
+ }
+ body.device-mobile-portrait #hud-actions-card {
+ order: 2;
+ flex: 0 0 auto;
+ padding: 0.2rem;
+ gap: 0.2rem;
+ border-radius: 0.85rem;
+ }
+ body.device-mobile-portrait #hud-actions-card button {
+ padding: 0.28rem 0.38rem;
+ font-size: 0.72rem;
+ border-radius: 0.6rem;
+ }
+ body.device-mobile-portrait #hud-status-card {
+ order: 3;
+ width: 100%;
+ padding: 0.22rem 0.4rem;
+ gap: 0.3rem;
+ border-radius: 0.85rem;
+ justify-content: space-between;
+ overflow-x: auto;
+ scrollbar-width: none;
+ }
+ body.device-mobile-portrait #hud-status-card::-webkit-scrollbar {
+ display: none;
+ }
+ body.device-mobile-portrait #turnBadge {
+ padding: 0.15rem 0.45rem;
+ font-size: 0.68rem;
+ gap: 0.3rem;
+ }
+ body.device-mobile-portrait #aiTierBadge {
+ padding: 0.15rem 0.4rem;
+ font-size: 0.66rem;
+ }
+ body.device-mobile-portrait #hud-status-card .font-mono {
+ font-size: 0.66rem;
+ }
+ body.device-mobile-portrait #wifiStatusBadge {
+ padding: 0.15rem 0.4rem;
+ font-size: 0.66rem;
+ gap: 0.25rem;
+ }
+ body.device-mobile-portrait #wifiStatusBadge button {
+ padding: 0.08rem 0.35rem;
+ font-size: 0.62rem;
+ margin-left: 0.15rem;
+ }
+ body.device-mobile-portrait #learning-banner {
+ top: 5.5rem;
+ padding: 0.45rem 0.65rem;
+ }
+ body.device-mobile-portrait #bottom-hud {
+ padding: 0.2rem;
+ padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0.25rem));
+ }
+ body.device-mobile-portrait #bottom-hud-inner {
+ width: 100%;
+ max-height: 19dvh;
+ overflow-y: auto;
+ flex-wrap: nowrap;
+ overflow-x: auto;
+ justify-content: flex-start;
+ padding: 0.25rem 0.3rem;
+ gap: 0.2rem;
+ -webkit-overflow-scrolling: touch;
+ scrollbar-width: none;
+ }
+ body.device-mobile-portrait #bottom-hud-inner::-webkit-scrollbar {
+ display: none;
+ }
+ body.device-mobile-portrait #bottom-hud-inner button,
+ body.device-mobile-portrait #bottom-hud-inner label {
+ padding: 0.25rem 0.4rem;
+ font-size: 0.68rem;
+ white-space: nowrap;
+ shrink: 0;
+ }
+ body.device-mobile-portrait #bottom-hud-inner .hud-control-group {
+ padding: 0.15rem 0.3rem;
+ shrink: 0;
+ white-space: nowrap;
+ }
+ body.device-mobile-portrait #bottom-hud-inner select {
+ padding: 0.2rem 0.3rem;
+ font-size: 0.68rem;
+ max-width: 96px;
+ }
+ body.device-mobile-landscape #bottom-hud-inner {
+ max-height: calc(100dvh - 0.9rem);
+ overflow-y: auto;
+ }
+ body.device-desktop #top-hud,
+ body.device-tablet #top-hud {
+ max-width: 1280px;
+ margin: 0 auto;
+ }
+ </style>
+</head>
+<body class="device-desktop">
+ <!-- 3D WebGL Canvas Container -->
+ <div id="canvas-container"></div>
+
+ <!-- Top HUD Bar -->
+ <header id="top-hud" class="fixed top-0 left-0 right-0 z-20 p-1.5 sm:p-3 flex flex-wrap items-center justify-between gap-1.5 pointer-events-none">
+ <!-- Title & Live Clock -->
+ <div id="hud-title-card" class="glass-panel rounded-2xl px-3.5 py-2 flex items-center gap-3 pointer-events-auto">
+ <div id="hud-logo-badge" class="w-9 h-9 rounded-full bg-gradient-to-br from-red-700 to-red-950 border border-amber-400/60 flex items-center justify-center shadow-inner shrink-0">
+ <span class="font-serif-tc font-black text-amber-200 text-lg">帥</span>
+ </div>
+ <div class="min-w-0">
+ <div class="flex items-center gap-1.5">
+ <h1 class="font-serif-tc font-bold text-sm sm:text-base text-amber-200 tracking-wider whitespace-nowrap">3D 中國象棋</h1>
+ <span id="deviceBadge" class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 whitespace-nowrap">🖥️ 桌面適中視野</span>
+ </div>
+ <div class="flex items-center gap-1.5 text-xs text-amber-100/75 font-mono mt-0.5 whitespace-nowrap">
+ <span id="liveClock">--:--:--</span>
+ <span>•</span>
+ <span>局時 <span id="gameTimer" class="text-amber-300 font-semibold">00:00</span></span>
+ </div>
+ </div>
+ </div>
+
+ <!-- Turn & Status Indicator (Battle Long Bar) -->
+ <div id="hud-status-card" class="glass-panel rounded-2xl px-4 py-2 flex items-center gap-3 pointer-events-auto">
+ <div id="turnBadge" class="flex items-center gap-2 px-3 py-1 rounded-full bg-red-900/80 border border-red-400/50 text-amber-100 font-bold text-xs sm:text-sm transition-all whitespace-nowrap shrink-0">
+ <span id="turnDot" class="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shrink-0"></span>
+ <span id="turnText" class="whitespace-nowrap">紅方走棋</span>
+ </div>
+ <div id="aiTierBadge" class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-400/40 text-amber-200 text-xs font-bold whitespace-nowrap shrink-0">
+ <span>⚔️ AI: 中級</span>
+ </div>
+ <div class="text-xs text-amber-200/80 font-mono flex items-center gap-1 whitespace-nowrap shrink-0">
+ <span>⏱</span>
+ <span id="stepTimer">00:00</span>
+ </div>
+ <div id="wifiStatusBadge" class="hidden items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-900/70 border border-emerald-400/40 text-emerald-200 text-xs font-semibold whitespace-nowrap shrink-0">
+ <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
+ <span id="wifiRoomLabel" class="whitespace-nowrap">房號: ----</span>
+ <button onclick="disconnectWifiBattle()" class="ml-1 px-2 py-0.5 rounded-full bg-red-800/90 hover:bg-red-700 border border-red-400/50 text-amber-100 text-[11px] font-bold transition whitespace-nowrap shrink-0" title="中斷 Wi-Fi 對戰">
+ 斷線
+ </button>
+ </div>
+ </div>
+
+ <!-- Primary Action Buttons -->
+ <div id="hud-actions-card" class="glass-panel rounded-2xl p-1.5 flex items-center gap-1.5 pointer-events-auto">
+ <button onclick="openModal('modeModal')" class="gold-btn text-amber-50 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shrink-0" title="開新對局">
+ <span>⚔️</span><span class="hidden md:inline">對戰模式</span>
+ </button>
+ <button onclick="openModal('learnModal')" class="wood-btn text-amber-100 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shrink-0" title="棋藝學堂">
+ <span>📖</span><span class="hidden md:inline">棋藝學堂</span>
+ </button>
+ <button onclick="openModal('saveModal')" class="wood-btn text-amber-100 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shrink-0" title="棋局存檔 (IndexedDB)">
+ <span>💾</span><span class="hidden md:inline">存檔</span>
+ </button>
+ <button onclick="openModal('settingsModal')" class="wood-btn text-amber-100 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 shrink-0" title="設定與 JSON">
+ <span>⚙️</span><span class="hidden md:inline">設定</span>
+ </button>
+ <button id="soundToggleBtn" onclick="toggleSound()" class="wood-btn text-amber-200 px-2.5 py-1.5 rounded-xl text-xs sm:text-sm shrink-0" title="切換音效">
+ 🔊
+ </button>
+ </div>
+ </header>
+
+ <!-- Learning Mode Overlay Banner (Hidden unless in tutorial) -->
+ <div id="learning-banner" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-20 w-[92%] max-w-xl glass-panel rounded-2xl p-3.5 border-amber-400/60">
+ <div class="flex items-start justify-between gap-3">
+ <div>
+ <div class="flex items-center gap-2">
+ <span class="px-2 py-0.5 text-xs font-bold rounded bg-amber-500 text-stone-950">棋藝互動演練</span>
+ <h3 id="lessonTitle" class="font-serif-tc font-bold text-amber-200 text-sm sm:text-base">課程標題</h3>
+ </div>
+ <p id="lessonDesc" class="text-xs sm:text-sm text-amber-100/90 mt-1.5 leading-relaxed">課程說明文字...</p>
+ </div>
+ <button onclick="exitLesson()" class="wood-btn px-2.5 py-1 rounded-lg text-xs text-amber-200 shrink-0">結束演練</button>
+ </div>
+ </div>
+
+ <!-- Check / Checkmate Floating Alert -->
+ <div id="checkBanner" class="hidden fixed top-1/2 left-1/2 z-30 pointer-events-none">
+ <div class="px-8 py-4 rounded-3xl bg-gradient-to-r from-red-900/95 via-red-700/95 to-red-900/95 border-2 border-amber-300 shadow-2xl text-center">
+ <div id="checkBannerText" class="font-serif-tc font-black text-3xl sm:text-5xl text-amber-200 tracking-widest drop-shadow">將軍！</div>
+ <div id="checkBannerSub" class="text-xs sm:text-sm text-amber-100 mt-1 font-semibold">請應將</div>
+ </div>
+ </div>
+
+ <!-- Toast Notification -->
+ <div id="toastContainer" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2 pointer-events-none"></div>
+
+ <!-- Bottom Control Bar -->
+ <footer id="bottom-hud" class="fixed bottom-0 left-0 right-0 z-20 p-2 sm:p-3 flex justify-center pointer-events-none">
+ <div id="bottom-hud-inner" class="glass-panel rounded-2xl px-3 py-2 flex flex-wrap items-center justify-center gap-2 pointer-events-auto">
+ <button onclick="undoMove()" class="wood-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-amber-100 flex items-center gap-1.5">
+ <span>↩️</span><span>悔棋</span>
+ </button>
+
+ <!-- Quick AI Skill Level Selector (4 Tiers) -->
+ <div class="hud-control-group flex items-center gap-1.5 bg-stone-900/75 border border-amber-500/35 rounded-xl px-2.5 py-1">
+ <span class="text-xs text-amber-300 font-semibold whitespace-nowrap">🧠 AI棋藝:</span>
+ <select id="quickAiDifficultySelect" onchange="changeAiDifficulty(this.value)" class="wood-select text-xs sm:text-sm font-semibold py-1 px-2" aria-label="電腦 AI 棋藝技巧選擇">
+ <option value="beginner">🌱 初級 (入門休閒)</option>
+ <option value="intermediate" selected>⚔️ 中級 (穩健攻防)</option>
+ <option value="advanced">🔥 高級 (深度算路)</option>
+ <option value="expert">👑 專家 (大師棋力)</option>
+ </select>
+ </div>
+
+ <button onclick="flipCamera()" class="wood-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-amber-100 flex items-center gap-1.5" title="切換下方/上方視角">
+ <span>🔄</span><span>翻轉視角</span>
+ </button>
+
+ <!-- Quick Piece Orientation Option Select -->
+ <div class="hud-control-group flex items-center gap-1.5 bg-stone-900/75 border border-amber-500/35 rounded-xl px-2.5 py-1">
+ <span class="text-xs text-amber-300 font-semibold whitespace-nowrap">🧭 棋向:</span>
+ <select id="quickPieceOrientationSelect" onchange="changePieceOrientation(this.value)" class="wood-select text-xs sm:text-sm font-semibold py-1 px-2" aria-label="兩邊對戰棋子方向選擇">
+ <option value="same_forward">相同向正前</option>
+ <option value="opposite">逆向各自方向</option>
+ <option value="bottom">全部朝向下方</option>
+ <option value="top">全部朝向上方</option>
+ </select>
+ </div>
+
+ <label class="wood-btn px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-amber-100 flex items-center gap-1.5 cursor-pointer select-none" title="勾選後鎖定3D棋盤視角，防止手指或滑鼠誤拖移動棋盤">
+ <input id="lockBoardCheckbox" type="checkbox" onchange="toggleBoardLock(this.checked)" class="w-4 h-4 accent-amber-500 rounded cursor-pointer" />
+ <span id="lockBoardLabel">🔓 鎖定棋盤</span>
+ </label>
+ <button onclick="resetCamera()" class="wood-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-amber-100 flex items-center gap-1.5">
+ <span>🎥</span><span>適中視野</span>
+ </button>
+ <button onclick="toggleHistoryDrawer()" class="wood-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-amber-100 flex items-center gap-1.5">
+ <span>📜</span><span>棋譜 (<span id="moveCountBadge">0</span>)</span>
+ </button>
+ </div>
+ </footer>
+
+ <!-- Move History Drawer -->
+ <aside id="historyDrawer" class="hidden fixed right-3 top-20 bottom-20 w-64 sm:w-72 z-20 glass-panel rounded-2xl p-4 flex flex-col">
+ <div class="flex items-center justify-between pb-2.5 border-b border-amber-500/25">
+ <h3 class="font-serif-tc font-bold text-amber-200 flex items-center gap-1.5"><span>📜</span> 實戰棋譜紀錄</h3>
+ <button onclick="toggleHistoryDrawer()" class="text-amber-300/70 hover:text-amber-200 text-lg leading-none">✕</button>
+ </div>
+ <div id="moveHistoryList" class="flex-1 overflow-y-auto mt-2 space-y-1 text-xs sm:text-sm font-mono pr-1">
+ <div class="text-amber-200/50 text-center py-8">尚未落子</div>
+ </div>
+ </aside>
+
+ <!-- ==================== MODALS ==================== -->
+
+ <!-- 1. Game Mode & Wi-Fi Modal -->
+ <div id="modeModal" class="modal-backdrop hidden fixed inset-0 z-30 bg-black/70 backdrop-blur-sm flex justify-center p-3 sm:p-4 overflow-y-auto">
+ <div class="modal-card glass-panel rounded-3xl w-full max-w-lg p-4 sm:p-6">
+ <div class="flex items-center justify-between pb-3 border-b border-amber-500/30">
+ <h2 class="font-serif-tc font-bold text-xl text-amber-200">⚔️ 選擇對戰模式與陣營</h2>
+ <button onclick="closeModal('modeModal')" class="text-amber-200/70 hover:text-amber-100 text-xl">✕</button>
+ </div>
+
+ <!-- Choose Side (Red or Black) -->
+ <div class="mt-4">
+ <label class="block text-xs font-bold text-amber-300 uppercase tracking-wider mb-2">1. 選擇您的執棋陣營（紅先黑後）</label>
+ <div class="grid grid-cols-2 gap-3">
+ <button id="sideRedBtn" onclick="selectPlayerSide('r')" class="p-3 rounded-2xl border-2 border-amber-400 bg-red-950/80 flex items-center justify-center gap-2.5 font-bold text-amber-100 shadow-lg">
+ <span class="w-7 h-7 rounded-full bg-red-700 border border-amber-300 flex items-center justify-center font-serif-tc text-sm">帥</span>
+ <span>執紅棋 (先手)</span>
+ </button>
+ <button id="sideBlackBtn" onclick="selectPlayerSide('b')" class="p-3 rounded-2xl border border-amber-500/30 bg-stone-900/80 flex items-center justify-center gap-2.5 font-bold text-stone-200">
+ <span class="w-7 h-7 rounded-full bg-stone-800 border border-emerald-400 flex items-center justify-center font-serif-tc text-sm text-emerald-300">將</span>
+ <span>執黑棋 (後手)</span>
+ </button>
+ </div>
+ </div>
+
+ <!-- Offline AI Battle -->
+ <div class="mt-5 pt-4 border-t border-amber-500/20">
+ <label class="block text-xs font-bold text-amber-300 uppercase tracking-wider mb-2">2. 離線智能 AI 對戰 (四級棋藝技巧)</label>
+ <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+ <button id="modeAiBtn_beginner" onclick="startNewGame('ai', 'beginner')" class="wood-btn py-2.5 px-2 rounded-xl text-center">
+ <div class="font-bold text-amber-200 text-sm">🌱 初級</div>
+ <div class="text-[11px] text-amber-100/60 mt-0.5">入門休閒</div>
+ </button>
+ <button id="modeAiBtn_intermediate" onclick="startNewGame('ai', 'intermediate')" class="wood-btn py-2.5 px-2 rounded-xl text-center border-amber-400">
+ <div class="font-bold text-amber-200 text-sm">⚔️ 中級</div>
+ <div class="text-[11px] text-amber-100/60 mt-0.5">穩健攻防</div>
+ </button>
+ <button id="modeAiBtn_advanced" onclick="startNewGame('ai', 'advanced')" class="wood-btn py-2.5 px-2 rounded-xl text-center">
+ <div class="font-bold text-amber-200 text-sm">🔥 高級</div>
+ <div class="text-[11px] text-amber-100/60 mt-0.5">深度算路</div>
+ </button>
+ <button id="modeAiBtn_expert" onclick="startNewGame('ai', 'expert')" class="gold-btn py-2.5 px-2 rounded-xl text-center">
+ <div class="font-bold text-white text-sm">👑 專家</div>
+ <div class="text-[11px] text-amber-100 mt-0.5">大師棋力</div>
+ </button>
+ </div>
+ </div>
+
+ <!-- Local Two-Player -->
+ <div class="mt-4 pt-4 border-t border-amber-500/20">
+ <label class="block text-xs font-bold text-amber-300 uppercase tracking-wider mb-2">3. 同機雙人對弈</label>
+ <button onclick="startNewGame('local')" class="w-full wood-btn py-2.5 rounded-xl font-bold text-amber-100 text-sm flex items-center justify-center gap-2">
+ <span>👥</span><span>雙人同屏輪流對戰</span>
+ </button>
+ </div>
+
+ <!-- Wi-Fi / LAN 4-Digit Room Multiplayer -->
+ <div class="mt-4 pt-4 border-t border-amber-500/20">
+ <label class="block text-xs font-bold text-emerald-300 uppercase tracking-wider mb-2">4. Wi-Fi / 網絡四碼房號即時對戰</label>
+ <div class="bg-stone-950/70 rounded-2xl p-3.5 border border-emerald-500/30 space-y-3">
+ <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+ <div>
+ <div class="text-xs text-amber-100/80">房主開局（自動生成 4 碼房號）</div>
+ <div id="hostRoomCodeDisplay" class="font-mono text-2xl font-black text-emerald-400 tracking-widest mt-0.5">----</div>
+ </div>
+ <button onclick="createWifiRoom()" class="gold-btn px-4 py-2 rounded-xl font-bold text-xs sm:text-sm text-white shrink-0">
+ 📡 建立房間開局
+ </button>
+ </div>
+ <div id="hostStatusMsg" class="text-xs text-emerald-300/90 hidden">正在等待挑戰者輸入房號連線...</div>
+
+ <div class="pt-2.5 border-t border-stone-800 flex items-center gap-2">
+ <input id="joinRoomInput" type="text" maxlength="4" inputmode="numeric" placeholder="輸入4碼房號" class="flex-1 min-w-0 bg-stone-900 border border-amber-500/40 rounded-xl px-3 py-2 text-center font-mono text-lg tracking-widest text-amber-200 focus:outline-none focus:border-amber-400" />
+ <button onclick="joinWifiRoom()" class="wood-btn px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-emerald-300 border-emerald-500/40 shrink-0">
+ 🔗 加入對戰
+ </button>
+ </div>
+
+ <div id="wifiDisconnectSection" class="hidden pt-2.5 border-t border-red-500/30">
+ <button onclick="disconnectWifiBattle()" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-900 to-red-800 hover:from-red-800 hover:to-red-700 border border-red-400/50 font-bold text-xs sm:text-sm text-amber-100 flex items-center justify-center gap-2 shadow-lg transition">
+ <span>🔌</span><span>中斷 Wi-Fi 連線對戰</span>
+ </button>
+ </div>
+ </div>
+ <div class="h-6 sm:hidden"></div>
+ </div>
+ </div>
+ </div>
+
+ <!-- 2. IndexedDB Save / Load Modal (Max 5 Slots, dd/mm/yyyy) -->
+ <div id="saveModal" class="modal-backdrop hidden fixed inset-0 z-30 bg-black/70 backdrop-blur-sm flex justify-center p-3 sm:p-4 overflow-y-auto">
+ <div class="modal-card glass-panel rounded-3xl w-full max-w-lg p-4 sm:p-6">
+ <div class="flex items-center justify-between pb-3 border-b border-amber-500/30">
+ <div>
+ <h2 class="font-serif-tc font-bold text-xl text-amber-200">💾 未完棋局存檔 (IndexedDB)</h2>
+ <p class="text-xs text-amber-100/70 mt-0.5">最多可儲存 5 個棋盤進度（日期格式：dd/mm/yyyy）</p>
+ </div>
+ <button onclick="closeModal('saveModal')" class="text-amber-200/70 hover:text-amber-100 text-xl">✕</button>
+ </div>
+
+ <div class="mt-4 flex flex-col sm:flex-row gap-2">
+ <input id="saveNameInput" type="text" maxlength="20" placeholder="輸入棋局名稱（選填）" class="w-full sm:flex-1 min-w-0 bg-stone-900/90 border border-amber-500/40 rounded-xl px-3 py-2 text-sm text-amber-100 focus:outline-none focus:border-amber-400" />
+ <button onclick="saveCurrentGameToDB()" class="gold-btn px-4 py-2.5 rounded-xl font-bold text-sm text-white shrink-0 whitespace-nowrap">
+ ＋ 儲存目前棋局
+ </button>
+ </div>
+
+ <div id="saveSlotsList" class="mt-4 space-y-2.5">
+ <!-- Populated dynamically from IndexedDB -->
+ </div>
+ </div>
+ </div>
+
+ <!-- 3. Settings & JSON Import/Export Modal -->
+ <div id="settingsModal" class="modal-backdrop hidden fixed inset-0 z-30 bg-black/70 backdrop-blur-sm flex justify-center p-3 sm:p-4 overflow-y-auto">
+ <div class="modal-card glass-panel rounded-3xl w-full max-w-lg p-4 sm:p-6">
+ <div class="flex items-center justify-between pb-3 border-b border-amber-500/30">
+ <h2 class="font-serif-tc font-bold text-xl text-amber-200">⚙️ 系統設定與 JSON 備份</h2>
+ <button onclick="closeModal('settingsModal')" class="text-amber-200/70 hover:text-amber-100 text-xl">✕</button>
+ </div>
+
+ <div class="mt-4 space-y-4">
+ <!-- AI Skill Level (4 Tiers) -->
+ <div>
+ <label class="block text-xs font-bold text-amber-300 mb-2">🧠 電腦 AI 棋藝技巧等級（4種技巧選擇）</label>
+ <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+ <button id="settingsAiBtn_beginner" onclick="changeAiDifficulty('beginner')" class="wood-btn py-2 px-2 rounded-xl text-center">
+ <div class="font-bold text-amber-200 text-xs sm:text-sm">🌱 初級</div>
+ <div class="text-[10px] text-amber-100/65 mt-0.5">入門休閒</div>
+ </button>
+ <button id="settingsAiBtn_intermediate" onclick="changeAiDifficulty('intermediate')" class="gold-btn py-2 px-2 rounded-xl text-center">
+ <div class="font-bold text-white text-xs sm:text-sm">⚔️ 中級</div>
+ <div class="text-[10px] text-amber-100 mt-0.5">穩健攻防</div>
+ </button>
+ <button id="settingsAiBtn_advanced" onclick="changeAiDifficulty('advanced')" class="wood-btn py-2 px-2 rounded-xl text-center">
+ <div class="font-bold text-amber-200 text-xs sm:text-sm">🔥 高級</div>
+ <div class="text-[10px] text-amber-100/65 mt-0.5">深度算路</div>
+ </button>
+ <button id="settingsAiBtn_expert" onclick="changeAiDifficulty('expert')" class="wood-btn py-2 px-2 rounded-xl text-center">
+ <div class="font-bold text-amber-200 text-xs sm:text-sm">👑 專家</div>
+ <div class="text-[10px] text-amber-100/65 mt-0.5">大師棋力</div>
+ </button>
+ </div>
+ <p id="aiDifficultyHint" class="text-[11px] text-amber-100/65 mt-1.5">目前設定：中級（標準開局庫 + 穩健攻防算路）。</p>
+ </div>
+
+ <!-- Board Theme -->
+ <div>
+ <label class="block text-xs font-bold text-amber-300 mb-2">棋盤木質外觀</label>
+ <div class="grid grid-cols-3 gap-2">
+ <button onclick="setBoardTheme('rosewood')" class="wood-btn py-2 px-2 rounded-xl text-xs font-bold text-amber-200">紅花梨木</button>
+ <button onclick="setBoardTheme('nanmu')" class="wood-btn py-2 px-2 rounded-xl text-xs font-bold text-amber-200">金絲楠木</button>
+ <button onclick="setBoardTheme('ebony')" class="wood-btn py-2 px-2 rounded-xl text-xs font-bold text-amber-200">紫檀黑木</button>
+ </div>
+ </div>
+
+ <!-- Piece Orientation Option Select -->
+ <div>
+ <label for="pieceOrientationSelect" class="block text-xs font-bold text-amber-300 mb-1.5">兩邊對戰棋子文字方向</label>
+ <select id="pieceOrientationSelect" onchange="changePieceOrientation(this.value)" class="wood-select w-full py-2.5 px-3 text-sm font-semibold">
+ <option value="same_forward">🧭 相同向正前（所有棋子一律端正朝向自己鏡頭前方）</option>
+ <option value="opposite">⚔️ 逆向各自方向（紅朝下、黑朝上，正宗實體對坐）</option>
+ <option value="bottom">⬇️ 全部朝向下方（固定朝向紅方底線）</option>
+ <option value="top">⬆️ 全部朝向上方（固定朝向黑方底線）</option>
+ </select>
+ <p id="pieceOrientationHint" class="text-[11px] text-amber-100/65 mt-1.5">目前設定：所有棋子文字自動跟隨您的視角朝向正前方。</p>
+ </div>
+
+ <!-- Lock 3D Board Option -->
+ <div class="bg-stone-950/60 p-3 rounded-2xl border border-amber-500/20 flex items-center justify-between gap-3">
+ <div>
+ <div class="text-xs font-bold text-amber-300">鎖定 3D 棋盤視角</div>
+ <div class="text-xs text-amber-100/75 mt-0.5">勾選後禁止拖曳旋轉或滾輪縮放棋盤，點擊落子更精準</div>
+ </div>
+ <label class="wood-btn px-3 py-1.5 rounded-xl text-xs font-bold text-amber-200 flex items-center gap-1.5 cursor-pointer shrink-0">
+ <input id="settingsLockBoardCheckbox" type="checkbox" onchange="toggleBoardLock(this.checked)" class="w-4 h-4 accent-amber-500 rounded cursor-pointer" />
+ <span>鎖定棋盤</span>
+ </label>
+ </div>
+
+ <!-- Viewport / Screen Adaptation -->
+ <div class="bg-stone-950/60 p-3 rounded-2xl border border-amber-500/20 flex items-center justify-between gap-3">
+ <div>
+ <div class="text-xs font-bold text-amber-300">螢幕自適應偵測</div>
+ <div id="deviceDetailText" class="text-xs text-amber-100/75 mt-0.5">偵測中...</div>
+ </div>
+ <button onclick="resetCamera(); closeModal('settingsModal')" class="wood-btn px-3 py-1.5 rounded-xl text-xs font-bold text-amber-200 shrink-0">
+ 📐 重設最佳大小
+ </button>
+ </div>
+
+ <!-- JSON Export / Import -->
+ <div class="pt-3 border-t border-amber-500/20">
+ <label class="block text-xs font-bold text-amber-300 mb-2">匯出 / 匯入設定與棋局資料 (.JSON)</label>
+ <div class="grid grid-cols-2 gap-3">
+ <button onclick="exportDataToJSON()" class="gold-btn py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-1.5">
+ <span>📤</span><span>匯出 JSON 設定</span>
+ </button>
+ <label class="wood-btn py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm text-amber-100 flex items-center justify-center gap-1.5 cursor-pointer">
+ <span>📥</span><span>匯入 JSON 設定</span>
+ <input id="jsonImportInput" type="file" accept=".json,application/json" class="hidden" onchange="importDataFromJSON(event)" />
+ </label>
+ </div>
+ <p class="text-[11px] text-amber-100/60 mt-2">包含偏好陣營、電腦AI棋藝等級、棋子方向、音效設定、木紋主題以及 IndexedDB 內儲存的所有棋局。</p>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <!-- 4. Diverse Chess Learning Academy Modal -->
+ <div id="learnModal" class="modal-backdrop hidden fixed inset-0 z-30 bg-black/70 backdrop-blur-sm flex justify-center p-3 sm:p-4 overflow-y-auto">
+ <div class="modal-card glass-panel rounded-3xl w-full max-w-2xl p-4 sm:p-6">
+ <div class="flex items-center justify-between pb-3 border-b border-amber-500/30">
+ <h2 class="font-serif-tc font-bold text-xl text-amber-200">📖 多元化中國象棋棋藝學堂</h2>
+ <button onclick="closeModal('learnModal')" class="text-amber-200/70 hover:text-amber-100 text-xl">✕</button>
+ </div>
+
+ <!-- Tabs -->
+ <div class="flex gap-2 mt-4 border-b border-amber-500/20 pb-2 overflow-x-auto">
+ <button onclick="switchLearnTab('rules')" id="tab-rules" class="gold-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-white shrink-0">子力走法口訣</button>
+ <button onclick="switchLearnTab('openings')" id="tab-openings" class="wood-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-amber-200 shrink-0">經典開局佈陣</button>
+ <button onclick="switchLearnTab('tactics')" id="tab-tactics" class="wood-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-amber-200 shrink-0">實戰殺法互動演練</button>
+ </div>
+
+ <!-- Tab Content: Rules -->
+ <div id="learn-rules" class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+ <div class="bg-stone-900/75 p-3 rounded-2xl border border-amber-500/20">
+ <div class="font-bold text-red-400 text-base font-serif-tc">帥 / 將（九宮統帥）</div>
+ <p class="text-amber-100/80 mt-1">每次只能直走或橫走一格，不可斜行，且不能離開「九宮」。兩帥不可在同一直線上直接照面（白臉將）。</p>
+ </div>
+ <div class="bg-stone-900/75 p-3 rounded-2xl border border-amber-500/20">
+ <div class="font-bold text-amber-300 text-base font-serif-tc">仕 / 士（貼身護衛）</div>
+ <p class="text-amber-100/80 mt-1">每次沿九宮斜線走一格，不可出九宮，主要負責保護將帥安全。</p>
+ </div>
+ <div class="bg-stone-900/75 p-3 rounded-2xl border border-amber-500/20">
+ <div class="font-bold text-amber-300 text-base font-serif-tc">相 / 象（飛田守疆）</div>
+ <p class="text-amber-100/80 mt-1">走「田」字對角線，不可過河界。若田字中心有棋子阻擋（塞象眼），則不可飛過。</p>
+ </div>
+ <div class="bg-stone-900/75 p-3 rounded-2xl border border-amber-500/20">
+ <div class="font-bold text-amber-300 text-base font-serif-tc">傌 / 馬（八面威風）</div>
+ <p class="text-amber-100/80 mt-1">走「日」字（先直橫一格再斜一格）。若緊鄰直橫方向有棋子阻擋（蹩馬腿），則該方向不可跳躍。</p>
+ </div>
+ <div class="bg-stone-900/75 p-3 rounded-2xl border border-amber-500/20">
+ <div class="font-bold text-amber-300 text-base font-serif-tc">俥 / 車（橫衝直撞）</div>
+ <p class="text-amber-100/80 mt-1">只要無子阻擋，直走、橫走格數不限，是象棋中威力最強的攻擊主力（一車十子寒）。</p>
+ </div>
+ <div class="bg-stone-900/75 p-3 rounded-2xl border border-amber-500/20">
+ <div class="font-bold text-amber-300 text-base font-serif-tc">炮 / 砲（隔山打牛）</div>
+ <p class="text-amber-100/80 mt-1">移動方式與車相同；但吃子時必須與目標之間隔著恰好一個棋子（炮架）。</p>
+ </div>
+ <div class="bg-stone-900/75 p-3 rounded-2xl border border-amber-500/20 sm:col-span-2">
+ <div class="font-bold text-amber-300 text-base font-serif-tc">兵 / 卒（有進無退）</div>
+ <p class="text-amber-100/80 mt-1">未過河前每次只能向前走一格；過河後可向前、向左或向右走一格，永遠不可後退。</p>
+ </div>
+ </div>
+
+ <!-- Tab Content: Openings -->
+ <div id="learn-openings" class="hidden mt-4 space-y-3">
+ <div class="bg-stone-900/75 p-4 rounded-2xl border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div>
+ <h4 class="font-serif-tc font-bold text-amber-200 text-base">1. 當頭炮（中炮開局）</h4>
+ <p class="text-xs sm:text-sm text-amber-100/80 mt-1">「炮二平五」直指黑方中卒，奪取中路要衝，攻勢凌厲，最受攻擊型棋手喜愛。</p>
+ </div>
+ <button onclick="loadInteractiveLesson('opening_cannon')" class="gold-btn px-4 py-2 rounded-xl text-xs font-bold text-white shrink-0">3D 演練佈陣</button>
+ </div>
+ <div class="bg-stone-900/75 p-4 rounded-2xl border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div>
+ <h4 class="font-serif-tc font-bold text-amber-200 text-base">2. 仙人指路（兵七進一）</h4>
+ <p class="text-xs sm:text-sm text-amber-100/80 mt-1">挺起七路兵試探對手虛實，同時疏通馬路，進可攻退可守，變化極為深奧。</p>
+ </div>
+ <button onclick="loadInteractiveLesson('opening_pawn')" class="gold-btn px-4 py-2 rounded-xl text-xs font-bold text-white shrink-0">3D 演練佈陣</button>
+ </div>
+ </div>
+
+ <!-- Tab Content: Tactics -->
+ <div id="learn-tactics" class="hidden mt-4 space-y-3">
+ <div class="bg-stone-900/75 p-4 rounded-2xl border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div>
+ <h4 class="font-serif-tc font-bold text-amber-200 text-base">殺法一：重炮殺（雙炮疊擊）</h4>
+ <p class="text-xs sm:text-sm text-amber-100/80 mt-1">雙炮在同一直線或橫線上前後配合，前炮作架、後炮將軍，令敵將無路可逃。試著走一步完成絕殺！</p>
+ </div>
+ <button onclick="loadInteractiveLesson('tactic_double_cannon')" class="gold-btn px-4 py-2 rounded-xl text-xs font-bold text-white shrink-0">進入殘局挑戰</button>
+ </div>
+ <div class="bg-stone-900/75 p-4 rounded-2xl border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div>
+ <h4 class="font-serif-tc font-bold text-amber-200 text-base">殺法二：馬後炮（子力協同）</h4>
+ <p class="text-xs sm:text-sm text-amber-100/80 mt-1">利用馬限制敵將左右移動並充當炮架，炮在馬後發動致命一擊。</p>
+ </div>
+ <button onclick="loadInteractiveLesson('tactic_horse_cannon')" class="gold-btn px-4 py-2 rounded-xl text-xs font-bold text-white shrink-0">進入殘局挑戰</button>
+ </div>
+ <div class="bg-stone-900/75 p-4 rounded-2xl border border-amber-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+ <div>
+ <h4 class="font-serif-tc font-bold text-amber-200 text-base">殺法三：白臉將（借帥助攻）</h4>
+ <p class="text-xs sm:text-sm text-amber-100/80 mt-1">巧妙運用「將帥不可照面」的規則，讓己方老帥封鎖敵將一側，配合車完成絕殺。</p>
+ </div>
+ <button onclick="loadInteractiveLesson('tactic_face_king')" class="gold-btn px-4 py-2 rounded-xl text-xs font-bold text-white shrink-0">進入殘局挑戰</button>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <!-- ==================== SCRIPT ==================== -->
+ <script>
+ /**
+ * ============================================================================
+ * 1. GLOBAL STATE & CONFIGURATION
+ * ============================================================================
+ */
+ const PIECE_CHARS = {
+ 'r_k': '帥', 'r_a': '仕', 'r_b': '相', 'r_n': '傌', 'r_r': '俥', 'r_c': '炮', 'r_p': '兵',
+ 'b_k': '將', 'b_a': '士', 'b_b': '象', 'b_n': '馬', 'b_r': '車', 'b_c': '砲', 'b_p': '卒'
+ };
+
+ const INITIAL_BOARD = [
+ ['b_r', 'b_n', 'b_b', 'b_a', 'b_k', 'b_a', 'b_b', 'b_n', 'b_r'],
+ [null, null, null, null, null, null, null, null, null ],
+ [null, 'b_c', null, null, null, null, null, 'b_c', null ],
+ ['b_p', null, 'b_p', null, 'b_p', null, 'b_p', null, 'b_p'],
+ [null, null, null, null, null, null, null, null, null ],
+ [null, null, null, null, null, null, null, null, null ],
+ ['r_p', null, 'r_p', null, 'r_p', null, 'r_p', null, 'r_p'],
+ [null, 'r_c', null, null, null, null, null, 'r_c', null ],
+ [null, null, null, null, null, null, null, null, null ],
+ ['r_r', 'r_n', 'r_b', 'r_a', 'r_k', 'r_a', 'r_b', 'r_n', 'r_r']
+ ];
+
+ const PIECE_ORIENTATION_LABELS = {
+ 'same_forward': '目前設定：相同向正前（所有棋子一律端正朝向您的鏡頭正前方）。',
+ 'opposite': '目前設定：逆向各自方向（紅方朝向下方底線、黑方朝向上方底線）。',
+ 'bottom': '目前設定：全部朝向下方（固定朝向紅方底線）。',
+ 'top': '目前設定：全部朝向上方（固定朝向黑方底線）。'
+ };
+
+ const AI_DIFFICULTY_META = {
+ 'beginner': {
+ badge: '🌱 AI: 初級',
+ short: '初級 (入門休閒)',
+ hint: '目前設定：初級（1步基礎子力評估 + 休閒失誤空間，適合新手練習）。'
+ },
+ 'intermediate': {
+ badge: '⚔️ AI: 中級',
+ short: '中級 (穩健攻防)',
+ hint: '目前設定：中級（標準開局庫 + 2層穩健攻防算路）。'
+ },
+ 'advanced': {
+ badge: '🔥 AI: 高級',
+ short: '高級 (深度算路)',
+ hint: '目前設定：高級（完整開局譜 + 3層深度算路與戰術延伸）。'
+ },
+ 'expert': {
+ badge: '👑 AI: 專家',
+ short: '專家 (大師棋力)',
+ hint: '目前設定：專家（迭代深化 4層搜尋 + 靜態兌子精算，大師級棋力）。'
+ }
+ };
+
+ const state = {
+ board: [],
+ turn: 'r', // 'r' or 'b'
+ gameMode: 'ai', // 'ai', 'local', 'wifi', 'lesson'
+ aiDifficulty: 'intermediate', // 'beginner', 'intermediate', 'advanced', 'expert'
+ playerSide: 'r', // 'r' or 'b'
+ selected: null, // { r, c }
+ validMoves: [], // [{ r, c }]
+ history: [], // [{ from, to, captured, notation, boardSnapshot }]
+ gameOver: false,
+ soundEnabled: true,
+ boardTheme: 'rosewood', // 'rosewood', 'nanmu', 'ebony'
+ pieceOrientation: 'same_forward', // 'same_forward', 'opposite', 'bottom', 'top'
+ boardLocked: false, // true = lock 3D camera drag/zoom so board stays still
+ cameraFlipped: false, // false = viewing from Red (bottom +Z), true = viewing from Black (top -Z)
+ gameSeconds: 0,
+ stepSeconds: 0,
+ aiThinking: false,
+ activeLesson: null,
+ deviceProfile: {
+ type: 'desktop', // 'mobile-portrait', 'mobile-landscape', 'tablet', 'desktop'
+ label: '🖥️ 桌面適中視野',
+ detail: ''
+ },
+ // Wi-Fi PeerJS state
+ peer: null,
+ conn: null,
+ wifiRole: null, // 'host' or 'guest'
+ roomCode: null
+ };
+
+ /**
+ * ============================================================================
+ * 2. WEB AUDIO SOUND SYNTHESIZER (No external URLs needed)
+ * ============================================================================
+ */
+ const SoundFX = {
+ ctx: null,
+ init() {
+ if (!this.ctx) {
+ const AudioCtx = window.AudioContext || window.webkitAudioContext;
+ if (AudioCtx) this.ctx = new AudioCtx();
+ }
+ if (this.ctx && this.ctx.state === 'suspended') {
+ this.ctx.resume();
+ }
+ },
+ playSelect() {
+ if (!state.soundEnabled) return;
+ this.init();
+ if (!this.ctx) return;
+ const now = this.ctx.currentTime;
+ const osc = this.ctx.createOscillator();
+ const gain = this.ctx.createGain();
+ osc.type = 'sine';
+ osc.frequency.setValueAtTime(520, now);
+ osc.frequency.exponentialRampToValueAtTime(760, now + 0.06);
+ gain.gain.setValueAtTime(0.15, now);
+ gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+ osc.connect(gain);
+ gain.connect(this.ctx.destination);
+ osc.start(now);
+ osc.stop(now + 0.07);
+ },
+ playMove(isCapture = false) {
+ if (!state.soundEnabled) return;
+ this.init();
+ if (!this.ctx) return;
+ const now = this.ctx.currentTime;
+
+ // Crisp wooden thud
+ const osc = this.ctx.createOscillator();
+ const gain = this.ctx.createGain();
+ osc.type = 'triangle';
+ osc.frequency.setValueAtTime(isCapture ? 210 : 175, now);
+ osc.frequency.exponentialRampToValueAtTime(48, now + (isCapture ? 0.16 : 0.11));
+ gain.gain.setValueAtTime(isCapture ? 0.55 : 0.4, now);
+ gain.gain.exponentialRampToValueAtTime(0.001, now + (isCapture ? 0.17 : 0.12));
+ osc.connect(gain);
+ gain.connect(this.ctx.destination);
+ osc.start(now);
+ osc.stop(now + 0.18);
+
+ // Impact click
+ const noise = this.ctx.createOscillator();
+ const nGain = this.ctx.createGain();
+ noise.type = 'square';
+ noise.frequency.setValueAtTime(isCapture ? 950 : 680, now);
+ noise.frequency.exponentialRampToValueAtTime(120, now + 0.03);
+ nGain.gain.setValueAtTime(0.14, now);
+ nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+ noise.connect(nGain);
+ nGain.connect(this.ctx.destination);
+ noise.start(now);
+ noise.stop(now + 0.04);
+ },
+ playCheck() {
+ if (!state.soundEnabled) return;
+ this.init();
+ if (!this.ctx) return;
+ const now = this.ctx.currentTime;
+ [440, 587.33, 880].forEach((freq, idx) => {
+ const osc = this.ctx.createOscillator();
+ const gain = this.ctx.createGain();
+ osc.type = 'sawtooth';
+ osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+ gain.gain.setValueAtTime(0.16, now + idx * 0.07);
+ gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.35);
+ osc.connect(gain);
+ gain.connect(this.ctx.destination);
+ osc.start(now + idx * 0.07);
+ osc.stop(now + idx * 0.07 + 0.36);
+ });
+ }
+ };
+
+ /**
+ * ============================================================================
+ * 3. CHINESE CHESS RULE ENGINE (Complete & Authentic)
+ * ============================================================================
+ */
+ function cloneBoard(board) {
+ return board.map(row => [...row]);
+ }
+
+ function isInsideBoard(r, c) {
+ return r >= 0 && r < 10 && c >= 0 && c < 9;
+ }
+
+ function getPieceSide(piece) {
+ return piece ? piece[0] : null;
+ }
+
+ function getPseudoMoves(board, r, c) {
+ const piece = board[r][c];
+ if (!piece) return [];
+ const side = piece[0];
+ const type = piece[2];
+ const moves = [];
+
+ const addIfValid = (nr, nc) => {
+ if (!isInsideBoard(nr, nc)) return false;
+ const target = board[nr][nc];
+ if (!target || getPieceSide(target) !== side) {
+ moves.push({ r: nr, c: nc });
+ }
+ return !target; // returns true if square was empty
+ };
+
+ if (type === 'k') {
+ // General / King inside 3x3 palace
+ const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+ for (const [dr, dc] of dirs) {
+ const nr = r + dr, nc = c + dc;
+ if (nc >= 3 && nc <= 5) {
+ if ((side === 'r' && nr >= 7 && nr <= 9) || (side === 'b' && nr >= 0 && nr <= 2)) {
+ addIfValid(nr, nc);
+ }
+ }
+ }
+ } else if (type === 'a') {
+ // Advisor diagonal inside palace
+ const dirs = [[-1,-1],[-1,1],[1,-1],[1,1]];
+ for (const [dr, dc] of dirs) {
+ const nr = r + dr, nc = c + dc;
+ if (nc >= 3 && nc <= 5) {
+ if ((side === 'r' && nr >= 7 && nr <= 9) || (side === 'b' && nr >= 0 && nr <= 2)) {
+ addIfValid(nr, nc);
+ }
+ }
+ }
+ } else if (type === 'b') {
+ // Elephant 2-step diagonal, cannot cross river, check blocking eye
+ const dirs = [[-2,-2],[-2,2],[2,-2],[2,2]];
+ for (const [dr, dc] of dirs) {
+ const nr = r + dr, nc = c + dc;
+ const eyeR = r + dr / 2, eyeC = c + dc / 2;
+ if (isInsideBoard(nr, nc) && !board[eyeR][eyeC]) {
+ if ((side === 'r' && nr >= 5) || (side === 'b' && nr <= 4)) {
+ addIfValid(nr, nc);
+ }
+ }
+ }
+ } else if (type === 'n') {
+ // Horse L-shape + blocking leg
+ const steps = [
+ [-2, -1, -1, 0], [-2, 1, -1, 0],
+ [2, -1, 1, 0], [2, 1, 1, 0],
+ [-1, -2, 0, -1], [1, -2, 0, -1],
+ [-1, 2, 0, 1], [1, 2, 0, 1]
+ ];
+ for (const [dr, dc, lr, lc] of steps) {
+ const nr = r + dr, nc = c + dc;
+ if (isInsideBoard(nr, nc) && !board[r + lr][c + lc]) {
+ addIfValid(nr, nc);
+ }
+ }
+ } else if (type === 'r') {
+ // Chariot straight lines
+ const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+ for (const [dr, dc] of dirs) {
+ let nr = r + dr, nc = c + dc;
+ while (isInsideBoard(nr, nc)) {
+ if (!addIfValid(nr, nc)) break;
+ nr += dr;
+ nc += dc;
+ }
+ }
+ } else if (type === 'c') {
+ // Cannon move without jump, capture with exact 1 screen
+ const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+ for (const [dr, dc] of dirs) {
+ let nr = r + dr, nc = c + dc;
+ let jumped = false;
+ while (isInsideBoard(nr, nc)) {
+ const target = board[nr][nc];
+ if (!jumped) {
+ if (!target) {
+ moves.push({ r: nr, c: nc });
+ } else {
+ jumped = true;
+ }
+ } else {
+ if (target) {
+ if (getPieceSide(target) !== side) {
+ moves.push({ r: nr, c: nc });
+ }
+ break;
+ }
+ }
+ nr += dr;
+ nc += dc;
+ }
+ }
+ } else if (type === 'p') {
+ // Soldier / Pawn
+ const forward = side === 'r' ? -1 : 1;
+ addIfValid(r + forward, c);
+ const crossedRiver = side === 'r' ? r <= 4 : r >= 5;
+ if (crossedRiver) {
+ addIfValid(r, c - 1);
+ addIfValid(r, c + 1);
+ }
+ }
+
+ return moves;
+ }
+
+ function isKingInCheck(board, side) {
+ let kingPos = null;
+ let oppKingPos = null;
+ const oppSide = side === 'r' ? 'b' : 'r';
+
+ for (let r = 0; r < 10; r++) {
+ for (let c = 0; c < 9; c++) {
+ if (board[r][c] === `${side}_k`) kingPos = { r, c };
+ if (board[r][c] === `${oppSide}_k`) oppKingPos = { r, c };
+ }
+ }
+ if (!kingPos) return true;
+
+ // 1. Flying General rule (白臉將)
+ if (oppKingPos && kingPos.c === oppKingPos.c) {
+ const minR = Math.min(kingPos.r, oppKingPos.r);
+ const maxR = Math.max(kingPos.r, oppKingPos.r);
+ let blocked = false;
+ for (let r = minR + 1; r < maxR; r++) {
+ if (board[r][kingPos.c]) {
+ blocked = true;
+ break;
+ }
+ }
+ if (!blocked) return true;
+ }
+
+ // 2. Check if any opponent piece attacks kingPos
+ for (let r = 0; r < 10; r++) {
+ for (let c = 0; c < 9; c++) {
+ const p = board[r][c];
+ if (p && getPieceSide(p) === oppSide) {
+ const pMoves = getPseudoMoves(board, r, c);
+ if (pMoves.some(m => m.r === kingPos.r && m.c === kingPos.c)) {
+ return true;
+ }
+ }
+ }
+ }
+ return false;
+ }
+
+ function getLegalMoves(board, r, c) {
+ const piece = board[r][c];
+ if (!piece) return [];
+ const side = getPieceSide(piece);
+ const pseudo = getPseudoMoves(board, r, c);
+ return pseudo.filter(m => {
+ const sim = cloneBoard(board);
+ sim[m.r][m.c] = sim[r][c];
+ sim[r][c] = null;
+ return !isKingInCheck(sim, side);
+ });
+ }
+
+ function hasAnyLegalMoves(board, side) {
+ for (let r = 0; r < 10; r++) {
+ for (let c = 0; c < 9; c++) {
+ if (board[r][c] && getPieceSide(board[r][c]) === side) {
+ if (getLegalMoves(board, r, c).length > 0) return true;
+ }
+ }
+ }
+ return false;
+ }
+
+ function formatChineseNotation(boardBefore, from, to) {
+ const piece = boardBefore[from.r][from.c];
+ const side = piece[0];
+ const name = PIECE_CHARS[piece];
+ const redCols = ['九','八','七','六','五','四','三','二','一'];
+ const blackCols = ['1','2','3','4','5','6','7','8','9'];
+ const colNames = side === 'r' ? redCols : blackCols;
+ const fromCol = colNames[from.c];
+ const toCol = colNames[to.c];
+
+ if (from.r === to.r) {
+ return `${name}${fromCol}平${toCol}`;
+ }
+ const isAdvancing = side === 'r' ? (to.r < from.r) : (to.r > from.r);
+ const action = isAdvancing ? '進' : '退';
+ const type = piece[2];
+ if (['r', 'c', 'p', 'k'].includes(type)) {
+ const diff = Math.abs(to.r - from.r);
+ const stepStr = side === 'r' ? ['一','二','三','四','五','六','七','八','九'][diff - 1] : `${diff}`;
+ return `${name}${fromCol}${action}${stepStr}`;
+ } else {
+ return `${name}${fromCol}${action}${toCol}`;
+ }
+ }
+
+ /**
+ * ============================================================================
+ * 4. OFFLINE AI ENGINE (Opening Book + Iterative Deepening Alpha-Beta + Quiescence)
+ * 4 Tiers: 初級 (Beginner), 中級 (Intermediate), 高級 (Advanced), 專家 (Expert)
+ * ============================================================================
+ */
+ const PIECE_VALUES = {
+ 'k': 10000, 'r': 950, 'c': 480, 'n': 420, 'b': 210, 'a': 210, 'p': 100
+ };
+
+ const PST_PAWN = [
+ [ 0, 3, 6, 9, 12, 9, 6, 3, 0],
+ [ 20, 40, 62, 85,125, 85, 62, 40, 20],
+ [ 16, 30, 48, 68, 88, 68, 48, 30, 16],
+ [ 12, 24, 36, 44, 52, 44, 36, 24, 12],
+ [ 8, 16, 24, 28, 32, 28, 24, 16, 8],
+ [ 2, 0, 10, 0, 12, 0, 10, 0, 2],
+ [ 0, 0, -2, 0, 6, 0, -2, 0, 0],
+ [ 0, 0, 0, 0, 0, 0, 0, 0, 0],
+ [ 0, 0, 0, 0, 0, 0, 0, 0, 0],
+ [ 0, 0, 0, 0, 0, 0, 0, 0, 0]
+ ];
+
+ const PST_KNIGHT = [
+ [ 4, 8, 16, 12, 4, 12, 16, 8, 4],
+ [ 4, 12, 32, 18, 10, 18, 32, 12, 4],
+ [14, 18, 22, 28, 24, 28, 22, 18, 14],
+ [10, 26, 24, 30, 26, 30, 24, 26, 10],
+ [ 8, 18, 20, 24, 22, 24, 20, 18, 8],
+ [ 6, 14, 18, 18, 16, 18, 18, 14, 6],
+ [ 4, 8, 12, 10, 14, 10, 12, 8, 4],
+ [ 4, 4, 12, 12, 6, 12, 12, 4, 4],
+ [ 0, 2, 4, 4, -4, 4, 4, 2, 0],
+ [-2, -6, 0, 0, 0, 0, 0, -6, -2]
+ ];
+
+ const PST_CHARIOT = [
+ [14, 14, 12, 18, 16, 18, 12, 14, 14],
+ [16, 20, 18, 24, 26, 24, 18, 20, 16],
+ [12, 12, 12, 18, 18, 18, 12, 12, 12],
+ [12, 18, 16, 22, 22, 22, 16, 18, 12],
+ [12, 14, 12, 18, 18, 18, 12, 14, 12],
+ [12, 16, 14, 20, 20, 20, 14, 16, 12],
+ [ 6, 10, 8, 14, 14, 14, 8, 10, 6],
+ [ 4, 8, 6, 14, 12, 14, 6, 8, 4],
+ [ 8, 4, 8, 16, 8, 16, 8, 4, 8],
+ [-2, 10, 6, 14, 12, 14, 6, 10, -2]
+ ];
+
+ const PST_CANNON = [
+ [ 6, 4, 0, -8,-10, -8, 0, 4, 6],
+ [ 2, 2, 0, -4, -8, -4, 0, 2, 2],
+ [ 2, 2, 0, -6, -4, -6, 0, 2, 2],
+ [ 0, 0, -2, 4, 10, 4, -2, 0, 0],
+ [ 0, 0, 0, 2, 6, 2, 0, 0, 0],
+ [-2, 0, 4, 2, 8, 2, 4, 0, -2],
+ [ 0, 0, 0, 2, 6, 2, 0, 0, 0],
+ [ 4, 0, 8, 6, 26, 6, 8, 0, 4],
+ [ 0, 2, 4, 6, 6, 6, 4, 2, 0],
+ [ 0, 0, 2, 6, 6, 6, 2, 0, 0]
+ ];
+
+ const OPENING_BOOK = {
+ 'r_0': [
+ { from: { r: 7, c: 7 }, to: { r: 7, c: 4 } },
+ { from: { r: 7, c: 1 }, to: { r: 7, c: 4 } },
+ { from: { r: 6, c: 2 }, to: { r: 5, c: 2 } },
+ { from: { r: 6, c: 6 }, to: { r: 5, c: 6 } },
+ { from: { r: 9, c: 2 }, to: { r: 7, c: 4 } },
+ { from: { r: 9, c: 1 }, to: { r: 7, c: 2 } }
+ ],
+ 'b_1': [
+ { from: { r: 0, c: 7 }, to: { r: 2, c: 6 } },
+ { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } },
+ { from: { r: 2, c: 7 }, to: { r: 2, c: 4 } },
+ { from: { r: 2, c: 1 }, to: { r: 2, c: 4 } },
+ { from: { r: 3, c: 6 }, to: { r: 4, c: 6 } },
+ { from: { r: 3, c: 2 }, to: { r: 4, c: 2 } }
+ ],
+ 'r_2': [
+ { from: { r: 9, c: 7 }, to: { r: 7, c: 6 } },
+ { from: { r: 9, c: 1 }, to: { r: 7, c: 2 } },
+ { from: { r: 9, c: 8 }, to: { r: 9, c: 7 } }
+ ],
+ 'b_3': [
+ { from: { r: 0, c: 1 }, to: { r: 2, c: 2 } },
+ { from: { r: 0, c: 7 }, to: { r: 2, c: 6 } },
+ { from: { r: 0, c: 8 }, to: { r: 0, c: 7 } }
+ ]
+ };
+
+ function getOpeningBookMove(board, side, plyCount) {
+ const candidates = OPENING_BOOK[`${side}_${plyCount}`];
+ if (!candidates || candidates.length === 0) return null;
+ const validBookMoves = candidates.filter(mv => {
+ const p = board[mv.from.r][mv.from.c];
+ if (!p || getPieceSide(p) !== side) return false;
+ const legals = getLegalMoves(board, mv.from.r, mv.from.c);
+ return legals.some(l => l.r === mv.to.r && l.c === mv.to.c);
+ });
+ if (validBookMoves.length === 0) return null;
+ return validBookMoves[Math.floor(Math.random() * validBookMoves.length)];
+ }
+
+ function evaluateBoard(board, aiSide, advancedEval = true) {
+ let score = 0;
+ let redAdvisors = 0, blackAdvisors = 0;
+ let redElephants = 0, blackElephants = 0;
+
+ for (let r = 0; r < 10; r++) {
+ for (let c = 0; c < 9; c++) {
+ const p = board[r][c];
+ if (!p) continue;
+ const side = p[0];
+ const type = p[2];
+ let val = PIECE_VALUES[type] || 0;
+ const evalR = side === 'r' ? r : (9 - r);
+
+ if (type === 'p') val += PST_PAWN[evalR][c];
+ else if (type === 'n') val += PST_KNIGHT[evalR][c];
+ else if (type === 'r') val += PST_CHARIOT[evalR][c];
+ else if (type === 'c') val += PST_CANNON[evalR][c];
+ else if (type === 'a') {
+ if (side === 'r') redAdvisors++; else blackAdvisors++;
+ if (evalR === 8 && c === 4) val += 14;
+ } else if (type === 'b') {
+ if (side === 'r') redElephants++; else blackElephants++;
+ if (evalR === 7 && c === 4) val += 12;
+ } else if (type === 'k') {
+ if (c !== 4) val -= 12;
+ }
+
+ score += (side === aiSide) ? val : -val;
+ }
+ }
+
+ if (advancedEval) {
+ const redGuardBonus = (redAdvisors === 2 && redElephants === 2) ? 35 : 0;
+ const blackGuardBonus = (blackAdvisors === 2 && blackElephants === 2) ? 35 : 0;
+ score += (aiSide === 'r') ? (redGuardBonus - blackGuardBonus) : (blackGuardBonus - redGuardBonus);
+ }
+
+ return score;
+ }
+
+ function generateAllMoves(board, side, capturesOnly = false) {
+ const all = [];
+ for (let r = 0; r < 10; r++) {
+ for (let c = 0; c < 9; c++) {
+ const p = board[r][c];
+ if (p && getPieceSide(p) === side) {
+ const moves = getLegalMoves(board, r, c);
+ for (const m of moves) {
+ const target = board[m.r][m.c];
+ if (capturesOnly && !target) continue;
+ let priority = 0;
+ if (target) {
+ priority = PIECE_VALUES[target[2]] * 12 - PIECE_VALUES[p[2]] + 500;
+ } else {
+ const evalR = side === 'r' ? m.r : (9 - m.r);
+ if (p[2] === 'r') priority = PST_CHARIOT[evalR][m.c];
+ else if (p[2] === 'n') priority = PST_KNIGHT[evalR][m.c];
+ else if (p[2] === 'c') priority = PST_CANNON[evalR][m.c];
+ else if (p[2] === 'p') priority = PST_PAWN[evalR][m.c];
+ }
+ all.push({ from: { r, c }, to: m, priority });
+ }
+ }
+ }
+ }
+ all.sort((a, b) => b.priority - a.priority);
+ return all;
+ }
+
+ function boardHash(board, side) {
+ let str = side;
+ for (let r = 0; r < 10; r++) {
+ const row = board[r];
+ for (let c = 0; c < 9; c++) {
+ str += row[c] || '..';
+ }
+ }
+ return str;
+ }
+
+ function quiescenceSearch(board, alpha, beta, maximizing, aiSide, qDepth = 0) {
+ const standPat = evaluateBoard(board, aiSide, true);
+ if (qDepth >= 3) return standPat;
+
+ if (maximizing) {
+ if (standPat >= beta) return beta;
+ if (standPat > alpha) alpha = standPat;
+ const capMoves = generateAllMoves(board, aiSide, true);
+ for (const mv of capMoves) {
+ const sim = cloneBoard(board);
+ sim[mv.to.r][mv.to.c] = sim[mv.from.r][mv.from.c];
+ sim[mv.from.r][mv.from.c] = null;
+ const score = quiescenceSearch(sim, alpha, beta, false, aiSide, qDepth + 1);
+ if (score >= beta) return beta;
+ if (score > alpha) alpha = score;
+ }
+ return alpha;
+ } else {
+ if (standPat <= alpha) return alpha;
+ if (standPat < beta) beta = standPat;
+ const oppSide = aiSide === 'r' ? 'b' : 'r';
+ const capMoves = generateAllMoves(board, oppSide, true);
+ for (const mv of capMoves) {
+ const sim = cloneBoard(board);
+ sim[mv.to.r][mv.to.c] = sim[mv.from.r][mv.from.c];
+ sim[mv.from.r][mv.from.c] = null;
+ const score = quiescenceSearch(sim, alpha, beta, true, aiSide, qDepth + 1);
+ if (score <= alpha) return alpha;
+ if (score < beta) beta = score;
+ }
+ return beta;
+ }
+ }
+
+ let aiTranspositionTable = new Map();
+ let aiSearchDeadline = 0;
+
+ function alphaBetaSearch(board, depth, alpha, beta, maximizing, aiSide, useQuiescence) {
+ if (performance.now() > aiSearchDeadline) {
+ return evaluateBoard(board, aiSide, useQuiescence);
+ }
+
+ const currentSide = maximizing ? aiSide : (aiSide === 'r' ? 'b' : 'r');
+ const key = `${boardHash(board, currentSide)}_${depth}`;
+ const cached = aiTranspositionTable.get(key);
+ if (cached !== undefined) return cached;
+
+ if (depth <= 0) {
+ return useQuiescence
+ ? quiescenceSearch(board, alpha, beta, maximizing, aiSide, 0)
+ : evaluateBoard(board, aiSide, false);
+ }
+
+ const moves = generateAllMoves(board, currentSide, false);
+ if (moves.length === 0) {
+ return maximizing ? (-99999 - depth) : (99999 + depth);
+ }
+
+ let bestVal;
+ if (maximizing) {
+ bestVal = -Infinity;
+ for (const mv of moves) {
+ const sim = cloneBoard(board);
+ sim[mv.to.r][mv.to.c] = sim[mv.from.r][mv.from.c];
+ sim[mv.from.r][mv.from.c] = null;
+ const ev = alphaBetaSearch(sim, depth - 1, alpha, beta, false, aiSide, useQuiescence);
+ if (ev > bestVal) bestVal = ev;
+ if (bestVal > alpha) alpha = bestVal;
+ if (beta <= alpha) break;
+ }
+ } else {
+ bestVal = Infinity;
+ for (const mv of moves) {
+ const sim = cloneBoard(board);
+ sim[mv.to.r][mv.to.c] = sim[mv.from.r][mv.from.c];
+ sim[mv.from.r][mv.from.c] = null;
+ const ev = alphaBetaSearch(sim, depth - 1, alpha, beta, true, aiSide, useQuiescence);
+ if (ev < bestVal) bestVal = ev;
+ if (bestVal < beta) beta = bestVal;
+ if (beta <= alpha) break;
+ }
+ }
+
+ if (aiTranspositionTable.size < 30000) {
+ aiTranspositionTable.set(key, bestVal);
+ }
+ return bestVal;
+ }
+
+ function computeAIMove() {
+ const aiSide = state.turn;
+ const moves = generateAllMoves(state.board, aiSide, false);
+ if (moves.length === 0) return null;
+
+ const diff = state.aiDifficulty;
+
+ // 1. 初級 (Beginner): 1-ply evaluation + human-like casual variance
+ if (diff === 'beginner') {
+ const scored = moves.map(mv => {
+ const sim = cloneBoard(state.board);
+ sim[mv.to.r][mv.to.c] = sim[mv.from.r][mv.from.c];
+ sim[mv.from.r][mv.from.c] = null;
+ return { mv, score: evaluateBoard(sim, aiSide, false) + (Math.random() * 160 - 80) };
+ });
+ scored.sort((a, b) => b.score - a.score);
+ return scored[0].mv;
+ }
+
+ // Opening Book for Intermediate / Advanced / Expert in first 4 plies
+ if (state.history.length < 4) {
+ const bookMove = getOpeningBookMove(state.board, aiSide, state.history.length);
+ if (bookMove) return bookMove;
+ }
+
+ const tierConfig = {
+ 'intermediate': { maxDepth: 2, timeMs: 300, useQ: false, jitter: 18 },
+ 'advanced': { maxDepth: 3, timeMs: 750, useQ: true, jitter: 6 },
+ 'expert': { maxDepth: 4, timeMs: 1400, useQ: true, jitter: 0 }
+ };
+ const cfg = tierConfig[diff] || tierConfig.intermediate;
+
+ aiTranspositionTable.clear();
+ aiSearchDeadline = performance.now() + cfg.timeMs;
+
+ let bestMove = moves[0];
+ let orderedMoves = [...moves];
+
+ for (let d = 1; d <= cfg.maxDepth; d++) {
+ if (performance.now() > aiSearchDeadline && d > 1) break;
+ let currentBest = orderedMoves[0];
+ let currentBestScore = -Infinity;
+ const scoredList = [];
+
+ for (const mv of orderedMoves) {
+ const sim = cloneBoard(state.board);
+ sim[mv.to.r][mv.to.c] = sim[mv.from.r][mv.from.c];
+ sim[mv.from.r][mv.from.c] = null;
+
+ let score = alphaBetaSearch(sim, d - 1, -Infinity, Infinity, false, aiSide, cfg.useQ);
+ if (cfg.jitter > 0) {
+ score += (Math.random() * cfg.jitter * 2 - cfg.jitter);
+ }
+ scoredList.push({ mv, score });
+ if (score > currentBestScore) {
+ currentBestScore = score;
+ currentBest = mv;
+ }
+ if (performance.now() > aiSearchDeadline && d > 1) break;
+ }
+
+ scoredList.sort((a, b) => b.score - a.score);
+ orderedMoves = scoredList.map(item => item.mv);
+ bestMove = currentBest;
+ }
+
+ return bestMove;
+ }
+
+ /**
+ * ============================================================================
+ * 5. THREE.JS 3D REALISTIC BOARD, PIECES, LIGHTING & ANIMATIONS
+ * ============================================================================
+ */
+ let scene, camera, renderer, raycaster, pointer;
+ let boardGroup, piecesGroup, markersGroup, particlesGroup;
+ let boardMesh, boardSurfaceMat;
+ let pieceMeshes = {};
+ let animations = [];
+ let particles = [];
+
+ const camOrbit = {
+ theta: 0,
+ phi: 0.72,
+ radius: 15.8,
+ targetTheta: 0,
+ targetPhi: 0.72,
+ targetRadius: 15.8,
+ isDragging: false,
+ prevX: 0,
+ prevY: 0,
+ dragDist: 0
+ };
+
+ const TILE_SIZE = 1.15;
+ function boardToWorld(r, c) {
+ return {
+ x: (c - 4) * TILE_SIZE,
+ z: (r - 4.5) * TILE_SIZE
+ };
+ }
+
+ function createWoodTexture(theme = 'rosewood') {
+ const canvas = document.createElement('canvas');
+ canvas.width = 1024;
+ canvas.height = 1140;
+ const ctx = canvas.getContext('2d');
+
+ const palettes = {
+ rosewood: { base: '#b56e36', grain: '#7c4119', line: '#291206', river: '#3b1b0a' },
+ nanmu: { base: '#d49b54', grain: '#9e682a', line: '#2b1608', river: '#3d200c' },
+ ebony: { base: '#5e4334', grain: '#362319', line: '#f5d08a', river: '#fcd34d' }
+ };
+ const pal = palettes[theme] || palettes.rosewood;
+
+ ctx.fillStyle = pal.base;
+ ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+ ctx.globalAlpha = 0.22;
+ for (let i = 0; i < 240; i++) {
+ ctx.strokeStyle = pal.grain;
+ ctx.lineWidth = 1 + Math.random() * 3;
+ ctx.beginPath();
+ const y = Math.random() * canvas.height;
+ ctx.moveTo(0, y);
+ ctx.bezierCurveTo(
+ canvas.width * 0.33, y + (Math.random() - 0.5) * 35,
+ canvas.width * 0.66, y + (Math.random() - 0.5) * 35,
+ canvas.width, y + (Math.random() - 0.5) * 20
+ );
+ ctx.stroke();
+ }
+ ctx.globalAlpha = 1.0;
+
+ const grad = ctx.createRadialGradient(512, 570, 100, 512, 570, 750);
+ grad.addColorStop(0, 'rgba(255,235,200,0.12)');
+ grad.addColorStop(1, 'rgba(0,0,0,0.28)');
+ ctx.fillStyle = grad;
+ ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+ const padX = 96;
+ const padY = 102;
+ const gridW = canvas.width - padX * 2;
+ const gridH = canvas.height - padY * 2;
+ const cellW = gridW / 8;
+ const cellH = gridH / 9;
+
+ ctx.strokeStyle = pal.line;
+ ctx.lineWidth = 4;
+
+ ctx.strokeRect(padX - 14, padY - 14, gridW + 28, gridH + 28);
+ ctx.lineWidth = 3;
+ ctx.strokeRect(padX, padY, gridW, gridH);
+
+ for (let r = 0; r < 10; r++) {
+ const y = padY + r * cellH;
+ ctx.beginPath();
+ ctx.moveTo(padX, y);
+ ctx.lineTo(padX + gridW, y);
+ ctx.stroke();
+ }
+
+ for (let c = 0; c < 9; c++) {
+ const x = padX + c * cellW;
+ if (c === 0 || c === 8) {
+ ctx.beginPath();
+ ctx.moveTo(x, padY);
+ ctx.lineTo(x, padY + gridH);
+ ctx.stroke();
+ } else {
+ ctx.beginPath();
+ ctx.moveTo(x, padY);
+ ctx.lineTo(x, padY + 4 * cellH);
+ ctx.moveTo(x, padY + 5 * cellH);
+ ctx.lineTo(x, padY + gridH);
+ ctx.stroke();
+ }
+ }
+
+ ctx.beginPath();
+ ctx.moveTo(padX + 3 * cellW, padY);
+ ctx.lineTo(padX + 5 * cellW, padY + 2 * cellH);
+ ctx.moveTo(padX + 5 * cellW, padY);
+ ctx.lineTo(padX + 3 * cellW, padY + 2 * cellH);
+ ctx.moveTo(padX + 3 * cellW, padY + 7 * cellH);
+ ctx.lineTo(padX + 5 * cellW, padY + 9 * cellH);
+ ctx.moveTo(padX + 5 * cellW, padY + 7 * cellH);
+ ctx.lineTo(padX + 3 * cellW, padY + 9 * cellH);
+ ctx.stroke();
+
+ const drawMarker = (r, c) => {
+ const cx = padX + c * cellW;
+ const cy = padY + r * cellH;
+ const gap = 8;
+ const len = 18;
+ ctx.lineWidth = 2.5;
+ const corners = [
+ [-1, -1, c > 0],
+ [ 1, -1, c < 8],
+ [-1, 1, c > 0],
+ [ 1, 1, c < 8]
+ ];
+ for (const [sx, sy, allowed] of corners) {
+ if (!allowed) continue;
+ ctx.beginPath();
+ ctx.moveTo(cx + sx * gap, cy + sy * (gap + len));
+ ctx.lineTo(cx + sx * gap, cy + sy * gap);
+ ctx.lineTo(cx + sx * (gap + len), cy + sy * gap);
+ ctx.stroke();
+ }
+ };
+ [[2,1],[2,7],[7,1],[7,7],[3,0],[3,2],[3,4],[3,6],[3,8],[6,0],[6,2],[6,4],[6,6],[6,8]].forEach(([r,c]) => drawMarker(r,c));
+
+ ctx.fillStyle = pal.river;
+ ctx.font = '900 54px "Noto Serif TC", serif';
+ ctx.textAlign = 'center';
+ ctx.textBaseline = 'middle';
+ const riverY = padY + 4.5 * cellH;
+ ctx.fillText('楚 河', padX + 2 * cellW, riverY);
+ ctx.fillText('漢 界', padX + 6 * cellW, riverY);
+
+ const tex = new THREE.CanvasTexture(canvas);
+ tex.anisotropy = 8;
+ return tex;
+ }
+
+ function createPieceTopTexture(pieceCode) {
+ const canvas = document.createElement('canvas');
+ canvas.width = 256;
+ canvas.height = 256;
+ const ctx = canvas.getContext('2d');
+ const isRed = pieceCode[0] === 'r';
+ const char = PIECE_CHARS[pieceCode];
+
+ const grad = ctx.createRadialGradient(110, 100, 15, 128, 128, 125);
+ if (isRed) {
+ grad.addColorStop(0, '#fdf3dc');
+ grad.addColorStop(0.75, '#e8c382');
+ grad.addColorStop(1, '#b8833e');
+ } else {
+ grad.addColorStop(0, '#f4f5e8');
+ grad.addColorStop(0.75, '#d5d8be');
+ grad.addColorStop(1, '#9ca384');
+ }
+ ctx.fillStyle = grad;
+ ctx.fillRect(0, 0, 256, 256);
+
+ const mainColor = isRed ? '#b91c1c' : '#14532d';
+ ctx.strokeStyle = mainColor;
+ ctx.lineWidth = 7;
+ ctx.beginPath();
+ ctx.arc(128, 128, 106, 0, Math.PI * 2);
+ ctx.stroke();
+
+ ctx.lineWidth = 2.5;
+ ctx.beginPath();
+ ctx.arc(128, 128, 96, 0, Math.PI * 2);
+ ctx.stroke();
+
+ ctx.font = '900 122px "Noto Serif TC", serif';
+ ctx.textAlign = 'center';
+ ctx.textBaseline = 'middle';
+
+ ctx.fillStyle = 'rgba(255,255,255,0.65)';
+ ctx.fillText(char, 130, 134);
+
+ ctx.fillStyle = mainColor;
+ ctx.fillText(char, 128, 131);
+
+ const tex = new THREE.CanvasTexture(canvas);
+ tex.anisotropy = 4;
+ return tex;
+ }
+
+ function getDesiredPieceRotationY(pieceCode) {
+ const isBlack = pieceCode[0] === 'b';
+ const baseRot = Math.PI / 2;
+ switch (state.pieceOrientation) {
+ case 'bottom':
+ return baseRot;
+ case 'top':
+ return baseRot + Math.PI;
+ case 'opposite':
+ return baseRot + (isBlack ? Math.PI : 0);
+ case 'same_forward':
+ default:
+ return baseRot + (state.cameraFlipped ? Math.PI : 0);
+ }
+ }
+
+ function applyPieceOrientations() {
+ for (const key in pieceMeshes) {
+ const mesh = pieceMeshes[key];
+ if (mesh && mesh.userData && mesh.userData.pieceCode) {
+ mesh.rotation.y = getDesiredPieceRotationY(mesh.userData.pieceCode);
+ }
+ }
+ }
+
+ function createPieceMesh(pieceCode) {
+ const isRed = pieceCode[0] === 'r';
+ const group = new THREE.Group();
+
+ const radius = 0.48;
+ const height = 0.24;
+
+ const topTex = createPieceTopTexture(pieceCode);
+ const sideMat = new THREE.MeshStandardMaterial({
+ color: isRed ? 0xc68b45 : 0xa5ab8a,
+ roughness: 0.42,
+ metalness: 0.08
+ });
+ const topMat = new THREE.MeshStandardMaterial({
+ map: topTex,
+ roughness: 0.35,
+ metalness: 0.05
+ });
+
+ const cylGeo = new THREE.CylinderGeometry(radius * 0.94, radius, height, 36);
+ const cylMesh = new THREE.Mesh(cylGeo, [sideMat, topMat, sideMat]);
+ cylMesh.castShadow = true;
+ cylMesh.receiveShadow = true;
+ cylMesh.position.y = height / 2;
+ group.add(cylMesh);
+
+ const ringGeo = new THREE.TorusGeometry(radius * 0.93, 0.015, 10, 36);
+ const ringMat = new THREE.MeshStandardMaterial({
+ color: isRed ? 0xf59e0b : 0x34d399,
+ roughness: 0.3,
+ metalness: 0.6
+ });
+ const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+ ringMesh.rotation.x = Math.PI / 2;
+ ringMesh.position.y = height;
+ group.add(ringMesh);
+
+ group.userData = { pieceCode };
+ group.rotation.y = getDesiredPieceRotationY(pieceCode);
+
+ return group;
+ }
+
+ function init3DScene() {
+ const container = document.getElementById('canvas-container');
+ scene = new THREE.Scene();
+
+ camera = new THREE.PerspectiveCamera(58, container.clientWidth / container.clientHeight, 0.1, 100);
+ updateCameraPosition();
+
+ renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+ renderer.setSize(container.clientWidth, container.clientHeight);
+ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+ renderer.shadowMap.enabled = true;
+ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+ renderer.toneMapping = THREE.ACESFilmicToneMapping;
+ renderer.toneMappingExposure = 1.12;
+ container.appendChild(renderer.domElement);
+
+ const ambientLight = new THREE.AmbientLight(0xfff1dc, 0.62);
+ scene.add(ambientLight);
+
+ const dirLight = new THREE.DirectionalLight(0xffedd5, 1.15);
+ dirLight.position.set(6, 14, 8);
+ dirLight.castShadow = true;
+ dirLight.shadow.mapSize.width = 2048;
+ dirLight.shadow.mapSize.height = 2048;
+ dirLight.shadow.camera.near = 2;
+ dirLight.shadow.camera.far = 35;
+ const d = 8.5;
+ dirLight.shadow.camera.left = -d;
+ dirLight.shadow.camera.right = d;
+ dirLight.shadow.camera.top = d;
+ dirLight.shadow.camera.bottom = -d;
+ dirLight.shadow.bias = -0.0005;
+ scene.add(dirLight);
+
+ const rimLight = new THREE.DirectionalLight(0xfbbf24, 0.38);
+ rimLight.position.set(-8, 8, -9);
+ scene.add(rimLight);
+
+ boardGroup = new THREE.Group();
+ piecesGroup = new THREE.Group();
+ markersGroup = new THREE.Group();
+ particlesGroup = new THREE.Group();
+ scene.add(boardGroup, piecesGroup, markersGroup, particlesGroup);
+
+ const boardW = 11.4;
+ const boardD = 12.6;
+ const boardH = 0.65;
+ const topTex = createWoodTexture(state.boardTheme);
+ boardSurfaceMat = new THREE.MeshStandardMaterial({ map: topTex, roughness: 0.45, metalness: 0.05 });
+ const frameMat = new THREE.MeshStandardMaterial({ color: 0x3b1f10, roughness: 0.55, metalness: 0.1 });
+
+ const boardGeo = new THREE.BoxGeometry(boardW, boardH, boardD);
+ boardMesh = new THREE.Mesh(boardGeo, [frameMat, frameMat, boardSurfaceMat, frameMat, frameMat, frameMat]);
+ boardMesh.position.y = -boardH / 2;
+ boardMesh.receiveShadow = true;
+ boardGroup.add(boardMesh);
+
+ const baseGeo = new THREE.BoxGeometry(boardW + 0.5, 0.3, boardD + 0.5);
+ const baseMat = new THREE.MeshStandardMaterial({ color: 0x211108, roughness: 0.7 });
+ const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+ baseMesh.position.y = -boardH - 0.15;
+ baseMesh.receiveShadow = true;
+ boardGroup.add(baseMesh);
+
+ raycaster = new THREE.Raycaster();
+ pointer = new THREE.Vector2();
+
+ const dom = renderer.domElement;
+ dom.addEventListener('pointerdown', onPointerDown);
+ window.addEventListener('pointermove', onPointerMove);
+ window.addEventListener('pointerup', onPointerUp);
+ dom.addEventListener('wheel', onWheel, { passive: false });
+ window.addEventListener('resize', onWindowResize);
+ window.addEventListener('orientationchange', () => setTimeout(onWindowResize, 120));
+ }
+
+ function updateCameraPosition() {
+ if (!camera) return;
+ const r = camOrbit.radius;
+ const phi = camOrbit.phi;
+ const theta = camOrbit.theta;
+ camera.position.x = r * Math.sin(phi) * Math.sin(theta);
+ camera.position.y = r * Math.cos(phi);
+ camera.position.z = r * Math.sin(phi) * Math.cos(theta);
+ camera.lookAt(0, 0, 0);
+ }
+
+ function detectDeviceAndAdaptViewport(resetToOptimal = false) {
+ const container = document.getElementById('canvas-container');
+ if (!container) return;
+ const w = container.clientWidth || window.innerWidth;
+ const h = container.clientHeight || window.innerHeight;
+ const aspect = w / Math.max(h, 1);
+ const isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+ const minDim = Math.min(w, h);
+
+ let type = 'desktop';
+ let label = '🖥️ 桌面適中視野';
+ let optimalRadius = 17.5;
+ let optimalPhi = 0.72;
+
+ if (minDim < 600 && isTouch) {
+ if (aspect < 1) {
+ type = 'mobile-portrait';
+ label = '📱 手機直屏';
+ optimalRadius = Math.max(19.2, 11.2 / Math.max(aspect, 0.45));
+ optimalPhi = 0.60;
+ } else {
+ type = 'mobile-landscape';
+ label = '📱 手機橫屏';
+ optimalRadius = 15.6;
+ optimalPhi = 0.74;
+ }
+ } else if (minDim < 1024 && isTouch) {
+ type = 'tablet';
+ label = aspect < 1 ? '📟 平板直屏' : '📟 平板橫屏';
+ optimalRadius = aspect < 1 ? 18.2 : 16.2;
+ optimalPhi = 0.70;
+ } else {
+ type = 'desktop';
+ label = '🖥️ 桌面適中視野';
+ const maxRefHeight = 820;
+ const heightScaleFactor = h > maxRefHeight ? (h / maxRefHeight) : 1.0;
+ optimalRadius = Math.min(23.5, 16.8 * Math.pow(heightScaleFactor, 0.72));
+ optimalPhi = 0.72;
+ }
+
+ document.body.classList.remove('device-mobile-portrait', 'device-mobile-landscape', 'device-tablet', 'device-desktop');
+ document.body.classList.add(`device-${type}`);
+
+ if (camera) {
+ if (type === 'mobile-portrait') {
+ // Shift 3D board downward slightly to balance top HUD vs bottom HUD and eliminate empty bottom gap
+ const yShift = Math.round(h * 0.045);
+ camera.setViewOffset(w, h, 0, -yShift, w, h);
+ } else {
+ camera.clearViewOffset();
+ }
+ }
+
+ state.deviceProfile = {
+ type,
+ label,
+ detail: `${label} (${w}×${h}px)`
+ };
+
+ const badge = document.getElementById('deviceBadge');
+ if (badge) badge.textContent = label;
+ const detailEl = document.getElementById('deviceDetailText');
+ if (detailEl) detailEl.textContent = state.deviceProfile.detail;
+
+ if (resetToOptimal) {
+ camOrbit.targetRadius = optimalRadius;
+ camOrbit.targetPhi = optimalPhi;
+ } else {
+ camOrbit.targetRadius = Math.max(11, Math.min(27, optimalRadius));
+ }
+ }
+
+ function onWindowResize() {
+ const container = document.getElementById('canvas-container');
+ if (!camera || !renderer || !container) return;
+ camera.aspect = container.clientWidth / container.clientHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(container.clientWidth, container.clientHeight);
+ detectDeviceAndAdaptViewport(false);
+ }
+
+ function sync3DBoardFromState() {
+ while (piecesGroup.children.length > 0) {
+ piecesGroup.remove(piecesGroup.children[0]);
+ }
+ pieceMeshes = {};
+
+ for (let r = 0; r < 10; r++) {
+ for (let c = 0; c < 9; c++) {
+ const code = state.board[r][c];
+ if (code) {
+ const mesh = createPieceMesh(code);
+ const pos = boardToWorld(r, c);
+ mesh.position.set(pos.x, 0, pos.z);
+ mesh.userData = { r, c, pieceCode: code };
+ piecesGroup.add(mesh);
+ pieceMeshes[`${r}_${c}`] = mesh;
+ }
+ }
+ }
+ clearMoveMarkers();
+ }
+
+ function clearMoveMarkers() {
+ while (markersGroup.children.length > 0) {
+ markersGroup.remove(markersGroup.children[0]);
+ }
+ }
+
+ function showValidMoveMarkers(moves, selectedPos) {
+ clearMoveMarkers();
+ if (selectedPos) {
+ const sPos = boardToWorld(selectedPos.r, selectedPos.c);
+ const selGeo = new THREE.RingGeometry(0.50, 0.58, 32);
+ const selMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, side: THREE.DoubleSide });
+ const selMesh = new THREE.Mesh(selGeo, selMat);
+ selMesh.rotation.x = -Math.PI / 2;
+ selMesh.position.set(sPos.x, 0.015, sPos.z);
+ markersGroup.add(selMesh);
+ }
+
+ for (const m of moves) {
+ const pos = boardToWorld(m.r, m.c);
+ const isCapture = !!state.board[m.r][m.c];
+ if (isCapture) {
+ const capGeo = new THREE.RingGeometry(0.46, 0.58, 32);
+ const capMat = new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide });
+ const capMesh = new THREE.Mesh(capGeo, capMat);
+ capMesh.rotation.x = -Math.PI / 2;
+ capMesh.position.set(pos.x, 0.02, pos.z);
+ markersGroup.add(capMesh);
+ } else {
+ const dotGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.03, 20);
+ const dotMat = new THREE.MeshBasicMaterial({ color: 0x34d399, transparent: true, opacity: 0.85 });
+ const dotMesh = new THREE.Mesh(dotGeo, dotMat);
+ dotMesh.position.set(pos.x, 0.015, pos.z);
+ markersGroup.add(dotMesh);
+ }
+ }
+ }
+
+ function spawnCaptureParticles(x, z, isRedCaptured) {
+ const color = isRedCaptured ? 0xdc2626 : 0x10b981;
+ for (let i = 0; i < 18; i++) {
+ const geo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+ const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.4 });
+ const p = new THREE.Mesh(geo, mat);
+ p.position.set(x, 0.25, z);
+ const angle = Math.random() * Math.PI * 2;
+ const speed = 1.5 + Math.random() * 2.5;
+ particles.push({
+ mesh: p,
+ vx: Math.cos(angle) * speed,
+ vy: 2.5 + Math.random() * 2.5,
+ vz: Math.sin(angle) * speed,
+ life: 1.0
+ });
+ particlesGroup.add(p);
+ }
+ }
+
+ function animatePieceMove(from, to, capturedCode, onComplete) {
+ const key = `${from.r}_${from.c}`;
+ const mesh = pieceMeshes[key];
+ const targetKey = `${to.r}_${to.c}`;
+ const targetMesh = pieceMeshes[targetKey];
+
+ if (!mesh) {
+ sync3DBoardFromState();
+ if (onComplete) onComplete();
+ return;
+ }
+
+ delete pieceMeshes[key];
+ if (targetMesh) {
+ piecesGroup.remove(targetMesh);
+ const wPos = boardToWorld(to.r, to.c);
+ spawnCaptureParticles(wPos.x, wPos.z, capturedCode[0] === 'r');
+ }
+ pieceMeshes[targetKey] = mesh;
+ mesh.userData.r = to.r;
+ mesh.userData.c = to.c;
+
+ const startPos = mesh.position.clone();
+ const endWorld = boardToWorld(to.r, to.c);
+ const endPos = new THREE.Vector3(endWorld.x, 0, endWorld.z);
+
+ animations.push({
+ mesh,
+ startPos,
+ endPos,
+ progress: 0,
+ duration: 0.24,
+ onComplete
+ });
+ }
+
+ function animateLoop() {
+ requestAnimationFrame(animateLoop);
+ const dt = 0.016;
+
+ camOrbit.theta += (camOrbit.targetTheta - camOrbit.theta) * 0.14;
+ camOrbit.phi += (camOrbit.targetPhi - camOrbit.phi) * 0.14;
+ camOrbit.radius += (camOrbit.targetRadius - camOrbit.radius) * 0.14;
+ updateCameraPosition();
+
+ for (let i = animations.length - 1; i >= 0; i--) {
+ const anim = animations[i];
+ anim.progress += dt / anim.duration;
+ if (anim.progress >= 1) {
+ anim.mesh.position.copy(anim.endPos);
+ animations.splice(i, 1);
+ if (anim.onComplete) anim.onComplete();
+ } else {
+ const t = anim.progress;
+ anim.mesh.position.lerpVectors(anim.startPos, anim.endPos, t);
+ anim.mesh.position.y = Math.sin(t * Math.PI) * 0.65;
+ }
+ }
+
+ for (const key in pieceMeshes) {
+ const m = pieceMeshes[key];
+ const isSel = state.selected && `${state.selected.r}_${state.selected.c}` === key;
+ const isAnimating = animations.some(a => a.mesh === m);
+ if (!isAnimating) {
+ const targetY = isSel ? 0.22 : 0;
+ m.position.y += (targetY - m.position.y) * 0.25;
+ }
+ }
+
+ for (let i = particles.length - 1; i >= 0; i--) {
+ const p = particles[i];
+ p.life -= dt * 1.8;
+ if (p.life <= 0) {
+ particlesGroup.remove(p.mesh);
+ particles.splice(i, 1);
+ } else {
+ p.vy -= 9.8 * dt;
+ p.mesh.position.x += p.vx * dt;
+ p.mesh.position.y += p.vy * dt;
+ p.mesh.position.z += p.vz * dt;
+ p.mesh.scale.setScalar(Math.max(0.01, p.life));
+ }
+ }
+
+ renderer.render(scene, camera);
+ }
+
+ /**
+ * ============================================================================
+ * 6. POINTER INTERACTION & CAMERA CONTROLS
+ * ============================================================================
+ */
+ function onPointerDown(e) {
+ camOrbit.isDragging = true;
+ camOrbit.prevX = e.clientX;
+ camOrbit.prevY = e.clientY;
+ camOrbit.dragDist = 0;
+ }
+
+ function onPointerMove(e) {
+ if (!camOrbit.isDragging) return;
+ const dx = e.clientX - camOrbit.prevX;
+ const dy = e.clientY - camOrbit.prevY;
+ camOrbit.dragDist += Math.hypot(dx, dy);
+ camOrbit.prevX = e.clientX;
+ camOrbit.prevY = e.clientY;
+
+ if (state.boardLocked) return;
+
+ if (camOrbit.dragDist > 6) {
+ camOrbit.targetTheta -= dx * 0.006;
+ camOrbit.targetPhi = Math.max(0.18, Math.min(1.25, camOrbit.targetPhi - dy * 0.006));
+ }
+ }
+
+ function onPointerUp(e) {
+ const wasClick = camOrbit.isDragging && camOrbit.dragDist <= 6;
+ camOrbit.isDragging = false;
+ if (wasClick) {
+ handleBoardClick(e.clientX, e.clientY);
+ }
+ }
+
+ function onWheel(e) {
+ e.preventDefault();
+ if (state.boardLocked) return;
+ camOrbit.targetRadius = Math.max(10.5, Math.min(26, camOrbit.targetRadius + e.deltaY * 0.008));
+ }
+
+ function flipCamera() {
+ if (state.boardLocked) {
+ showToast('🔒 棋盤已鎖定，請先取消勾選「鎖定棋盤」再翻轉視角');
+ return;
+ }
+ state.cameraFlipped = !state.cameraFlipped;
+ camOrbit.targetTheta = state.cameraFlipped ? Math.PI : 0;
+ applyPieceOrientations();
+ showToast(state.cameraFlipped ? '視角已切換至上方（黑方陣營）' : '視角已切換至下方（紅方陣營）');
+ }
+
+ function resetCamera() {
+ camOrbit.targetTheta = state.cameraFlipped ? Math.PI : 0;
+ detectDeviceAndAdaptViewport(true);
+ applyPieceOrientations();
+ showToast(`已調整為${state.deviceProfile.label}最佳大小`);
+ }
+
+ /**
+ * ============================================================================
+ * 7. CORE GAMEPLAY FLOW & MULTIPLAYER SYNC
+ * ============================================================================
+ */
+ function handleBoardClick(clientX, clientY) {
+ if (state.gameOver || state.aiThinking || animations.length > 0) return;
+
+ if (state.gameMode === 'ai' && state.turn !== state.playerSide) return;
+ if (state.gameMode === 'wifi' && state.turn !== state.playerSide) {
+ showToast('請等待對方落子...');
+ return;
+ }
+
+ const rect = renderer.domElement.getBoundingClientRect();
+ pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+ pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+ raycaster.setFromCamera(pointer, camera);
+
+ const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.1);
+ const hitPoint = new THREE.Vector3();
+ if (!raycaster.ray.intersectPlane(plane, hitPoint)) return;
+
+ const c = Math.round(hitPoint.x / TILE_SIZE + 4);
+ const r = Math.round(hitPoint.z / TILE_SIZE + 4.5);
+ if (!isInsideBoard(r, c)) return;
+
+ const clickedPiece = state.board[r][c];
+
+ if (state.selected) {
+ const isLegal = state.validMoves.some(m => m.r === r && m.c === c);
+ if (isLegal) {
+ executeMove(state.selected, { r, c }, true);
+ return;
+ }
+ }
+
+ if (clickedPiece && getPieceSide(clickedPiece) === state.turn) {
+ state.selected = { r, c };
+ state.validMoves = getLegalMoves(state.board, r, c);
+ SoundFX.playSelect();
+ showValidMoveMarkers(state.validMoves, state.selected);
+ } else {
+ state.selected = null;
+ state.validMoves = [];
+ clearMoveMarkers();
+ }
+ }
+
+ function executeMove(from, to, broadcastWifi = false) {
+ const movingPiece = state.board[from.r][from.c];
+ if (!movingPiece) return;
+
+ if (state.gameMode === 'lesson' && state.activeLesson) {
+ const exp = state.activeLesson.expectedMove;
+ if (exp && (from.r !== exp.from.r || from.c !== exp.from.c || to.r !== exp.to.r || to.c !== exp.to.c)) {
+ showToast('💡 提示：' + state.activeLesson.hint);
+ return;
+ }
+ }
+
+ const captured = state.board[to.r][to.c];
+ const notation = formatChineseNotation(state.board, from, to);
+ const snapshot = cloneBoard(state.board);
+
+ state.board[to.r][to.c] = movingPiece;
+ state.board[from.r][from.c] = null;
+
+ state.history.push({ from, to, captured, notation, boardSnapshot: snapshot });
+ state.selected = null;
+ state.validMoves = [];
+ clearMoveMarkers();
+ state.stepSeconds = 0;
+
+ if (broadcastWifi && state.gameMode === 'wifi' && state.conn && state.conn.open) {
+ state.conn.send({ type: 'move', from, to });
+ }
+
+ animatePieceMove(from, to, captured, () => {
+ SoundFX.playMove(!!captured);
+
+ if (state.gameMode === 'lesson' && state.activeLesson) {
+ SoundFX.playCheck();
+ triggerCheckAlert('演練成功！', state.activeLesson.successMsg);
+ state.gameOver = true;
+ return;
+ }
+
+ state.turn = state.turn === 'r' ? 'b' : 'r';
+ updateHUD();
+
+ const inCheck = isKingInCheck(state.board, state.turn);
+ const hasMoves = hasAnyLegalMoves(state.board, state.turn);
+
+ if (!hasMoves) {
+ state.gameOver = true;
+ const winnerText = state.turn === 'r' ? '黑方勝出！' : '紅方勝出！';
+ const reasonText = inCheck ? '絕殺無解' : '困斃判負';
+ SoundFX.playCheck();
+ triggerCheckAlert(winnerText, reasonText);
+ updateHUD();
+ return;
+ }
+
+ if (inCheck) {
+ SoundFX.playCheck();
+ triggerCheckAlert('將軍！', state.turn === 'r' ? '紅方帥危，請應將' : '黑方將危，請應將');
+ }
+
+ if (state.gameMode === 'ai' && state.turn !== state.playerSide && !state.gameOver) {
+ state.aiThinking = true;
+ updateHUD();
+ setTimeout(() => {
+ const aiMove = computeAIMove();
+ state.aiThinking = false;
+ if (aiMove) {
+ executeMove(aiMove.from, aiMove.to, false);
+ }
+ }, 320);
+ }
+ });
+ }
+
+ function undoMove() {
+ if (state.gameMode === 'wifi') {
+ showToast('Wi-Fi 連線對戰不支援單方悔棋');
+ return;
+ }
+ if (state.aiThinking || animations.length > 0 || state.history.length === 0) {
+ showToast('目前無法悔棋');
+ return;
+ }
+
+ const stepsToUndo = (state.gameMode === 'ai' && state.history.length >= 2 && state.turn === state.playerSide) ? 2 : 1;
+ for (let i = 0; i < stepsToUndo; i++) {
+ const last = state.history.pop();
+ if (last) {
+ state.board = cloneBoard(last.boardSnapshot);
+ state.turn = state.turn === 'r' ? 'b' : 'r';
+ }
+ }
+
+ state.gameOver = false;
+ state.selected = null;
+ state.validMoves = [];
+ state.stepSeconds = 0;
+ sync3DBoardFromState();
+ updateHUD();
+ showToast('已悔棋');
+ }
+
+ function selectPlayerSide(side) {
+ state.playerSide = side;
+ const redBtn = document.getElementById('sideRedBtn');
+ const blackBtn = document.getElementById('sideBlackBtn');
+ if (side === 'r') {
+ redBtn.className = 'p-3 rounded-2xl border-2 border-amber-400 bg-red-950/80 flex items-center justify-center gap-2.5 font-bold text-amber-100 shadow-lg';
+ blackBtn.className = 'p-3 rounded-2xl border border-amber-500/30 bg-stone-900/80 flex items-center justify-center gap-2.5 font-bold text-stone-200';
+ } else {
+ blackBtn.className = 'p-3 rounded-2xl border-2 border-emerald-400 bg-emerald-950/80 flex items-center justify-center gap-2.5 font-bold text-emerald-100 shadow-lg';
+ redBtn.className = 'p-3 rounded-2xl border border-amber-500/30 bg-stone-900/80 flex items-center justify-center gap-2.5 font-bold text-stone-200';
+ }
+ savePreferencesToLocal();
+ }
+
+ function changeAiDifficulty(diff, silent = false) {
+ const valid = ['beginner', 'intermediate', 'advanced', 'expert'];
+ if (!valid.includes(diff)) diff = 'intermediate';
+ state.aiDifficulty = diff;
+
+ // Sync quick dropdown
+ const quickSel = document.getElementById('quickAiDifficultySelect');
+ if (quickSel) quickSel.value = diff;
+
+ // Sync settings modal buttons & hint
+ valid.forEach(level => {
+ const sBtn = document.getElementById(`settingsAiBtn_${level}`);
+ if (sBtn) {
+ if (level === diff) {
+ sBtn.className = 'gold-btn py-2 px-2 rounded-xl text-center';
+ sBtn.querySelector('div:first-child').className = 'font-bold text-white text-xs sm:text-sm';
+ sBtn.querySelector('div:last-child').className = 'text-[10px] text-amber-100 mt-0.5';
+ } else {
+ sBtn.className = 'wood-btn py-2 px-2 rounded-xl text-center';
+ sBtn.querySelector('div:first-child').className = 'font-bold text-amber-200 text-xs sm:text-sm';
+ sBtn.querySelector('div:last-child').className = 'text-[10px] text-amber-100/65 mt-0.5';
+ }
+ }
+ const mBtn = document.getElementById(`modeAiBtn_${level}`);
+ if (mBtn) {
+ if (level === diff) {
+ mBtn.className = 'gold-btn py-2.5 px-2 rounded-xl text-center';
+ mBtn.querySelector('div:first-child').className = 'font-bold text-white text-sm';
+ mBtn.querySelector('div:last-child').className = 'text-[11px] text-amber-100 mt-0.5';
+ } else {
+ mBtn.className = 'wood-btn py-2.5 px-2 rounded-xl text-center';
+ mBtn.querySelector('div:first-child').className = 'font-bold text-amber-200 text-sm';
+ mBtn.querySelector('div:last-child').className = 'text-[11px] text-amber-100/60 mt-0.5';
+ }
+ }
+ });
+
+ const hintEl = document.getElementById('aiDifficultyHint');
+ if (hintEl) hintEl.textContent = AI_DIFFICULTY_META[diff].hint;
+
+ // If currently in local/wifi/lesson and user switches AI skill from bottom bar or settings, switch to AI mode seamlessly
+ if (state.gameMode !== 'ai') {
+ state.gameMode = 'ai';
+ }
+
+ updateHUD();
+ savePreferencesToLocal();
+
+ if (!silent) {
+ showToast(`🧠 電腦 AI 棋藝已切換為：${AI_DIFFICULTY_META[diff].short}`);
+ }
+ }
+
+ function startNewGame(mode, difficulty = null) {
+ const targetDiff = difficulty || state.aiDifficulty || 'intermediate';
+ state.board = cloneBoard(INITIAL_BOARD);
+ state.turn = 'r';
+ state.gameMode = mode;
+ state.selected = null;
+ state.validMoves = [];
+ state.history = [];
+ state.gameOver = false;
+ state.gameSeconds = 0;
+ state.stepSeconds = 0;
+ state.activeLesson = null;
+
+ if (mode !== 'wifi' && (state.peer || state.conn)) {
+ cleanupPeer();
+ }
+ if (mode === 'ai') {
+ changeAiDifficulty(targetDiff, true);
+ } else {
+ state.aiDifficulty = targetDiff;
+ }
+
+ document.getElementById('learning-banner').classList.add('hidden');
+ closeModal('modeModal');
+
+ state.cameraFlipped = (state.playerSide === 'b');
+ camOrbit.targetTheta = state.cameraFlipped ? Math.PI : 0;
+
+ sync3DBoardFromState();
+ updateHUD();
+
+ const modeNames = {
+ 'ai': `人機對戰 (${AI_DIFFICULTY_META[targetDiff].short})`,
+ 'local': '雙人同機對弈',
+ 'wifi': 'Wi-Fi 連線對戰'
+ };
+ showToast(`已開始：${modeNames[mode] || '新棋局'}`);
+
+ if (mode === 'ai' && state.playerSide === 'b') {
+ state.aiThinking = true;
+ updateHUD();
+ setTimeout(() => {
+ const aiMove = computeAIMove();
+ state.aiThinking = false;
+ if (aiMove) executeMove(aiMove.from, aiMove.to, false);
+ }, 450);
+ }
+ }
+
+ /**
+ * ============================================================================
+ * 8. WI-FI / NETWORK 4-DIGIT ROOM MULTIPLAYER (PeerJS)
+ * ============================================================================
+ */
+ const PEER_PREFIX = 'xq3d-room-';
+
+ function generate4DigitCode() {
+ return Math.floor(1000 + Math.random() * 9000).toString();
+ }
+
+ function cleanupPeer() {
+ if (state.conn) {
+ try { state.conn.close(); } catch (e) {}
+ state.conn = null;
+ }
+ if (state.peer) {
+ try { state.peer.destroy(); } catch (e) {}
+ state.peer = null;
+ }
+ state.wifiRole = null;
+ state.roomCode = null;
+ document.getElementById('wifiStatusBadge').classList.add('hidden');
+ document.getElementById('wifiStatusBadge').classList.remove('flex');
+ const discSec = document.getElementById('wifiDisconnectSection');
+ if (discSec) discSec.classList.add('hidden');
+ const hostCodeEl = document.getElementById('hostRoomCodeDisplay');
+ if (hostCodeEl) hostCodeEl.textContent = '----';
+ const hostStatusEl = document.getElementById('hostStatusMsg');
+ if (hostStatusEl) hostStatusEl.classList.add('hidden');
+ }
+
+ function disconnectWifiBattle() {
+ if (state.conn && state.conn.open) {
+ try { state.conn.send({ type: 'disconnect' }); } catch (e) {}
+ }
+ cleanupPeer();
+ if (state.gameMode === 'wifi') {
+ state.gameMode = 'local';
+ updateHUD();
+ }
+ closeModal('modeModal');
+ showToast('🔌 已中斷 Wi-Fi 連線對戰（已轉為本機單機模式）');
+ }
+
+ function createWifiRoom() {
+ cleanupPeer();
+ const code = generate4DigitCode();
+ state.roomCode = code;
+ state.wifiRole = 'host';
+
+ document.getElementById('hostRoomCodeDisplay').textContent = code;
+ const statusEl = document.getElementById('hostStatusMsg');
+ statusEl.classList.remove('hidden');
+ statusEl.textContent = `正在建立房間 ${code}，請稍候...`;
+
+ const peer = new Peer(PEER_PREFIX + code);
+ state.peer = peer;
+
+ peer.on('open', () => {
+ statusEl.textContent = `✅ 房間 ${code} 已就緒！請對方在同一網絡或遠端輸入 ${code} 加入。`;
+ const discSec = document.getElementById('wifiDisconnectSection');
+ if (discSec) discSec.classList.remove('hidden');
+ showToast(`房號 ${code} 已生成，等待挑戰者加入`);
+ });
+
+ peer.on('connection', (conn) => {
+ state.conn = conn;
+ setupWifiConnection(conn);
+ conn.on('open', () => {
+ conn.send({
+ type: 'init',
+ hostSide: state.playerSide
+ });
+ startNewGame('wifi');
+ updateWifiBadge(code);
+ showToast('🎉 挑戰者已加入，對局開始！');
+ });
+ });
+
+ peer.on('error', (err) => {
+ statusEl.textContent = `⚠️ 連線錯誤 (${err.type})，請重試。`;
+ });
+ }
+
+ function joinWifiRoom() {
+ const input = document.getElementById('joinRoomInput').value.trim();
+ if (!/^\d{4}$/.test(input)) {
+ showToast('請輸入正確的 4 位數字房號');
+ return;
+ }
+ cleanupPeer();
+ state.roomCode = input;
+ state.wifiRole = 'guest';
+
+ showToast(`正在連線至房間 ${input}...`);
+ const peer = new Peer();
+ state.peer = peer;
+
+ peer.on('open', () => {
+ const conn = peer.connect(PEER_PREFIX + input, { reliable: true });
+ state.conn = conn;
+ setupWifiConnection(conn);
+ });
+
+ peer.on('error', () => {
+ showToast(`❌ 找不到房號 ${input}，請確認房主已開局`);
+ });
+ }
+
+ function setupWifiConnection(conn) {
+ conn.on('data', (data) => {
+ if (!data || !data.type) return;
+ if (data.type === 'init') {
+ const guestSide = data.hostSide === 'r' ? 'b' : 'r';
+ selectPlayerSide(guestSide);
+ startNewGame('wifi');
+ updateWifiBadge(state.roomCode);
+ showToast(`已加入房間 ${state.roomCode}！您執${guestSide === 'r' ? '紅棋' : '黑棋'}`);
+ } else if (data.type === 'move') {
+ executeMove(data.from, data.to, false);
+ } else if (data.type === 'disconnect') {
+ showToast('⚠️ 對方已主動中斷 Wi-Fi 連線對戰');
+ cleanupPeer();
+ if (state.gameMode === 'wifi') {
+ state.gameMode = 'local';
+ updateHUD();
+ }
+ }
+ });
+
+ conn.on('close', () => {
+ if (state.peer || state.conn) {
+ showToast('⚠️ 對方已中斷 Wi-Fi 連線');
+ cleanupPeer();
+ if (state.gameMode === 'wifi') {
+ state.gameMode = 'local';
+ updateHUD();
+ }
+ }
+ });
+ }
+
+ function updateWifiBadge(code) {
+ const badge = document.getElementById('wifiStatusBadge');
+ badge.classList.remove('hidden');
+ badge.classList.add('flex');
+ document.getElementById('wifiRoomLabel').textContent = `房號: ${code}`;
+ const discSec = document.getElementById('wifiDisconnectSection');
+ if (discSec) discSec.classList.remove('hidden');
+ }
+
+ /**
+ * ============================================================================
+ * 9. INDEXEDDB STORAGE (Max 5 Unfinished Games + dd/mm/yyyy Date Format)
+ * ============================================================================
+ */
+ const DB_NAME = 'ChineseChess3D_Master_DB';
+ const DB_VERSION = 2;
+ const STORE_NAME = 'saved_games';
+ const MAX_SLOTS = 5;
+ const FALLBACK_STORAGE_KEY = 'xq3d_saved_games_fallback';
+
+ function openChessDB() {
+ return new Promise((resolve, reject) => {
+ if (!window.indexedDB) {
+ reject(new Error('IndexedDB unavailable'));
+ return;
+ }
+ const req = indexedDB.open(DB_NAME, DB_VERSION);
+ req.onupgradeneeded = (e) => {
+ const db = e.target.result;
+ if (!db.objectStoreNames.contains(STORE_NAME)) {
+ db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+ }
+ };
+ req.onsuccess = () => {
+ const db = req.result;
+ if (!db.objectStoreNames.contains(STORE_NAME)) {
+ const nextVer = db.version + 1;
+ db.close();
+ const upgradeReq = indexedDB.open(DB_NAME, nextVer);
+ upgradeReq.onupgradeneeded = (ev) => {
+ const upDb = ev.target.result;
+ if (!upDb.objectStoreNames.contains(STORE_NAME)) {
+ upDb.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+ }
+ };
+ upgradeReq.onsuccess = () => resolve(upgradeReq.result);
+ upgradeReq.onerror = () => reject(upgradeReq.error);
+ } else {
+ resolve(db);
+ }
+ };
+ req.onerror = () => reject(req.error);
+ });
+ }
+
+ function formatDateDDMMYYYY(dateObj = new Date()) {
+ const dd = String(dateObj.getDate()).padStart(2, '0');
+ const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+ const yyyy = dateObj.getFullYear();
+ return `${dd}/${mm}/${yyyy}`;
+ }
+
+ function getFallbackSaves() {
+ try {
+ return JSON.parse(localStorage.getItem(FALLBACK_STORAGE_KEY) || '[]');
+ } catch (e) {
+ return [];
+ }
+ }
+
+ function setFallbackSaves(list) {
+ try {
+ localStorage.setItem(FALLBACK_STORAGE_KEY, JSON.stringify(list));
+ } catch (e) {}
+ }
+
+ async function getAllSavedGames() {
+ try {
+ const db = await openChessDB();
+ return await new Promise((resolve, reject) => {
+ const tx = db.transaction(STORE_NAME, 'readonly');
+ const store = tx.objectStore(STORE_NAME);
+ const req = store.getAll();
+ req.onsuccess = () => {
+ db.close();
+ resolve(req.result || []);
+ };
+ req.onerror = () => {
+ db.close();
+ reject(req.error);
+ };
+ });
+ } catch (err) {
+ return getFallbackSaves();
+ }
+ }
+
+ async function saveCurrentGameToDB() {
+ try {
+ const existing = await getAllSavedGames();
+ if (existing.length >= MAX_SLOTS) {
+ showToast(`⚠️ 最多僅可儲存 ${MAX_SLOTS} 個棋盤！請先刪除舊存檔。`);
+ return;
+ }
+ const customName = document.getElementById('saveNameInput').value.trim();
+ const dateStr = formatDateDDMMYYYY(new Date());
+ const record = {
+ name: customName || `棋局存檔 #${existing.length + 1}`,
+ date: dateStr,
+ board: cloneBoard(state.board),
+ turn: state.turn,
+ gameMode: state.gameMode === 'wifi' ? 'local' : state.gameMode,
+ aiDifficulty: state.aiDifficulty,
+ playerSide: state.playerSide,
+ gameSeconds: state.gameSeconds,
+ history: state.history.map(h => ({
+ from: h.from,
+ to: h.to,
+ captured: h.captured,
+ notation: h.notation,
+ boardSnapshot: h.boardSnapshot
+ }))
+ };
+
+ try {
+ const db = await openChessDB();
+ await new Promise((resolve, reject) => {
+ const tx = db.transaction(STORE_NAME, 'readwrite');
+ tx.objectStore(STORE_NAME).add(record);
+ tx.oncomplete = () => {
+ db.close();
+ resolve();
+ };
+ tx.onerror = () => {
+ db.close();
+ reject(tx.error);
+ };
+ });
+ } catch (dbErr) {
+ const fallback = getFallbackSaves();
+ record.id = Date.now();
+ fallback.push(record);
+ setFallbackSaves(fallback);
+ }
+
+ document.getElementById('saveNameInput').value = '';
+ showToast(`✅ 棋局已儲存 (${dateStr})`);
+ renderSaveSlots();
+ } catch (err) {
+ showToast('儲存失敗：' + err.message);
+ }
+ }
+
+ async function loadSavedGameFromDB(id) {
+ const all = await getAllSavedGames();
+ const found = all.find(item => item.id === id);
+ if (!found) return;
+
+ state.board = cloneBoard(found.board);
+ state.turn = found.turn;
+ state.gameMode = found.gameMode || 'ai';
+ changeAiDifficulty(found.aiDifficulty || 'intermediate', true);
+ state.playerSide = found.playerSide || 'r';
+ state.gameSeconds = found.gameSeconds || 0;
+ state.stepSeconds = 0;
+ state.history = found.history || [];
+ state.selected = null;
+ state.validMoves = [];
+ state.gameOver = false;
+ state.activeLesson = null;
+
+ state.cameraFlipped = (state.playerSide === 'b');
+ camOrbit.targetTheta = state.cameraFlipped ? Math.PI : 0;
+
+ sync3DBoardFromState();
+ updateHUD();
+ closeModal('saveModal');
+ showToast(`📂 已載入「${found.name}」(${found.date})`);
+ }
+
+ async function deleteSavedGameFromDB(id) {
+ try {
+ const db = await openChessDB();
+ await new Promise((resolve, reject) => {
+ const tx = db.transaction(STORE_NAME, 'readwrite');
+ tx.objectStore(STORE_NAME).delete(id);
+ tx.oncomplete = () => {
+ db.close();
+ resolve();
+ };
+ tx.onerror = () => {
+ db.close();
+ reject(tx.error);
+ };
+ });
+ } catch (e) {}
+
+ const fallback = getFallbackSaves().filter(item => item.id !== id);
+ setFallbackSaves(fallback);
+
+ showToast('🗑️ 已刪除存檔');
+ renderSaveSlots();
+ }
+
+ async function renderSaveSlots() {
+ const container = document.getElementById('saveSlotsList');
+ const saves = await getAllSavedGames();
+ if (saves.length === 0) {
+ container.innerHTML = `<div class="text-center py-6 text-xs sm:text-sm text-amber-200/50 border border-dashed border-amber-500/25 rounded-2xl">目前尚無任何存檔 (0 / ${MAX_SLOTS})</div>`;
+ return;
+ }
+
+ container.innerHTML = saves.map((s, idx) => `
+ <div class="bg-stone-900/85 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between gap-2">
+ <div>
+ <div class="flex items-center gap-2">
+ <span class="px-2 py-0.5 text-[11px] font-bold rounded bg-amber-500/20 text-amber-300">槽位 ${idx + 1}/${MAX_SLOTS}</span>
+ <span class="font-bold text-amber-100 text-sm">${escapeHTML(s.name)}</span>
+ </div>
+ <div class="text-xs text-amber-200/70 mt-1 font-mono">
+ 日期: <span class="text-emerald-300 font-semibold">${s.date}</span> • 已走 ${s.history ? s.history.length : 0} 步 • 輪到${s.turn === 'r' ? '紅方' : '黑方'}
+ </div>
+ </div>
+ <div class="flex items-center gap-1.5 shrink-0">
+ <button onclick="loadSavedGameFromDB(${s.id})" class="gold-btn px-3 py-1.5 rounded-xl text-xs font-bold text-white">繼續對弈</button>
+ <button onclick="deleteSavedGameFromDB(${s.id})" class="wood-btn px-2.5 py-1.5 rounded-xl text-xs text-red-300 hover:bg-red-950">刪除</button>
+ </div>
+ </div>
+ `).join('');
+ }
+
+ /**
+ * ============================================================================
+ * 10. JSON EXPORT / IMPORT DATA & SETTINGS
+ * ============================================================================
+ */
+ async function exportDataToJSON() {
+ try {
+ const savedGames = await getAllSavedGames();
+ const exportPayload = {
+ app: '3D_Chinese_Chess_Master',
+ exportedAt: formatDateDDMMYYYY(new Date()),
+ settings: {
+ soundEnabled: state.soundEnabled,
+ boardTheme: state.boardTheme,
+ pieceOrientation: state.pieceOrientation,
+ playerSide: state.playerSide,
+ aiDifficulty: state.aiDifficulty,
+ boardLocked: state.boardLocked
+ },
+ currentGame: {
+ board: state.board,
+ turn: state.turn,
+ history: state.history,
+ gameSeconds: state.gameSeconds
+ },
+ savedGames
+ };
+
+ const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url;
+ a.download = `chinese_chess_3d_${formatDateDDMMYYYY(new Date()).replace(/\//g, '-')}.json`;
+ document.body.appendChild(a);
+ a.click();
+ document.body.removeChild(a);
+ URL.revokeObjectURL(url);
+ showToast('📤 已匯出 JSON 設定與棋局備份');
+ } catch (err) {
+ showToast('匯出失敗：' + err.message);
+ }
+ }
+
+ function importDataFromJSON(event) {
+ const file = event.target.files[0];
+ if (!file) return;
+ const reader = new FileReader();
+ reader.onload = async (e) => {
+ try {
+ const data = JSON.parse(e.target.result);
+ if (data.settings) {
+ state.soundEnabled = data.settings.soundEnabled !== false;
+ document.getElementById('soundToggleBtn').textContent = state.soundEnabled ? '🔊' : '🔇';
+ if (data.settings.boardTheme) setBoardTheme(data.settings.boardTheme);
+ if (data.settings.pieceOrientation) changePieceOrientation(data.settings.pieceOrientation, true);
+ if (data.settings.playerSide) selectPlayerSide(data.settings.playerSide);
+ if (data.settings.aiDifficulty) changeAiDifficulty(data.settings.aiDifficulty, true);
+ if (typeof data.settings.boardLocked === 'boolean') toggleBoardLock(data.settings.boardLocked, true);
+ }
+ if (data.currentGame && Array.isArray(data.currentGame.board)) {
+ state.board = cloneBoard(data.currentGame.board);
+ state.turn = data.currentGame.turn || 'r';
+ state.history = data.currentGame.history || [];
+ state.gameSeconds = data.currentGame.gameSeconds || 0;
+ sync3DBoardFromState();
+ updateHUD();
+ }
+ if (Array.isArray(data.savedGames) && data.savedGames.length > 0) {
+ const sliced = data.savedGames.slice(0, MAX_SLOTS);
+ try {
+ const db = await openChessDB();
+ await new Promise((resolve, reject) => {
+ const tx = db.transaction(STORE_NAME, 'readwrite');
+ const store = tx.objectStore(STORE_NAME);
+ store.clear();
+ sliced.forEach(g => {
+ const copy = { ...g };
+ delete copy.id;
+ store.add(copy);
+ });
+ tx.oncomplete = () => { db.close(); resolve(); };
+ tx.onerror = () => { db.close(); reject(tx.error); };
+ });
+ } catch (dbErr) {
+ setFallbackSaves(sliced.map((g, idx) => ({ ...g, id: Date.now() + idx })));
+ }
+ renderSaveSlots();
+ }
+ showToast('📥 JSON 設定與存檔匯入成功！');
+ closeModal('settingsModal');
+ } catch (err) {
+ showToast('❌ JSON 格式無效，匯入失敗');
+ }
+ event.target.value = '';
+ };
+ reader.readAsText(file);
+ }
+
+ /**
+ * ============================================================================
+ * 11. DIVERSE CHESS LEARNING ACADEMY (Interactive Scenarios)
+ * ============================================================================
+ */
+ const LESSONS = {
+ opening_cannon: {
+ title: '經典開局：當頭炮（炮二平五）',
+ desc: '紅方第一步將右炮移至中路（五路），直接瞄準黑方中卒，奪取中路控制權。請點擊紅方「炮」（右下側）並移至中路（第五行）！',
+ hint: '請點選紅方右炮（第8行第8列），向右平移動到中線（第8行第5列）',
+ successMsg: '漂亮！「炮二平五」當頭炮氣勢如虹！',
+ board: cloneBoard(INITIAL_BOARD),
+ expectedMove: { from: { r: 7, c: 7 }, to: { r: 7, c: 4 } }
+ },
+ opening_pawn: {
+ title: '經典開局：仙人指路（兵七進一）',
+ desc: '挺起七路兵，為己方馬開路並試探對手應對。請點擊紅方七路「兵」向前推進一格！',
+ hint: '請點選紅方七路兵（第7行第3列），向前走一格（第6行第3列）',
+ successMsg: '妙哉！「仙人指路」靈活多變，盡顯大師風範！',
+ board: cloneBoard(INITIAL_BOARD),
+ expectedMove: { from: { r: 6, c: 2 }, to: { r: 5, c: 2 } }
+ },
+ tactic_double_cannon: {
+ title: '實戰殺法：重炮殺（雙炮疊擊）',
+ desc: '黑將位於頂線中路且被己方士阻擋左右。紅方已有一炮在中線，請移動另一門紅「炮」至中線形成「重炮」一舉絕殺！',
+ hint: '將紅方下方的「炮」平移動到中線（第5列），與前炮連成一線！',
+ successMsg: '重炮絕殺！前炮作架、後炮轟擊，無解！',
+ board: (() => {
+ const b = Array.from({ length: 10 }, () => Array(9).fill(null));
+ b[0][4] = 'b_k'; b[0][3] = 'b_a'; b[0][5] = 'b_a';
+ b[3][4] = 'r_c'; b[5][2] = 'r_c'; b[9][4] = 'r_k';
+ return b;
+ })(),
+ expectedMove: { from: { r: 5, c: 2 }, to: { r: 5, c: 4 } }
+ },
+ tactic_horse_cannon: {
+ title: '實戰殺法：馬後炮',
+ desc: '紅馬已跳至臥槽要點封鎖黑將退路並充當炮架，請移動紅「炮」至馬後發動絕殺！',
+ hint: '將紅「炮」移至紅馬同一橫線的左側（第2行第1列），隔馬將軍！',
+ successMsg: '馬後炮絕殺！子力協同的經典範例！',
+ board: (() => {
+ const b = Array.from({ length: 10 }, () => Array(9).fill(null));
+ b[0][4] = 'b_k'; b[0][3] = 'b_a';
+ b[1][2] = 'r_n'; b[4][0] = 'r_c'; b[9][4] = 'r_k';
+ return b;
+ })(),
+ expectedMove: { from: { r: 4, c: 0 }, to: { r: 1, c: 0 } }
+ },
+ tactic_face_king: {
+ title: '實戰殺法：白臉將（借帥助攻）',
+ desc: '紅帥在五路控制中線，黑將被迫偏居四路。請用紅「俥」沉底將軍，利用將帥不可照面的規則完成絕殺！',
+ hint: '將紅「俥」直衝黑方底線（第0行第3列）！',
+ successMsg: '白臉將絕殺！巧妙利用規則限制敵將移動！',
+ board: (() => {
+ const b = Array.from({ length: 10 }, () => Array(9).fill(null));
+ b[0][3] = 'b_k';
+ b[3][2] = 'r_r'; b[9][4] = 'r_k';
+ return b;
+ })(),
+ expectedMove: { from: { r: 3, c: 2 }, to: { r: 0, c: 2 } }
+ }
+ };
+
+ function switchLearnTab(tab) {
+ ['rules', 'openings', 'tactics'].forEach(t => {
+ document.getElementById(`learn-${t}`).classList.toggle('hidden', t !== tab);
+ const btn = document.getElementById(`tab-${t}`);
+ btn.className = (t === tab)
+ ? 'gold-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-white shrink-0'
+ : 'wood-btn px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold text-amber-200 shrink-0';
+ });
+ }
+
+ function loadInteractiveLesson(lessonKey) {
+ const lesson = LESSONS[lessonKey];
+ if (!lesson) return;
+ state.gameMode = 'lesson';
+ state.activeLesson = lesson;
+ state.board = cloneBoard(lesson.board);
+ state.turn = 'r';
+ state.playerSide = 'r';
+ state.selected = null;
+ state.validMoves = [];
+ state.history = [];
+ state.gameOver = false;
+ state.cameraFlipped = false;
+ camOrbit.targetTheta = 0;
+
+ document.getElementById('lessonTitle').textContent = lesson.title;
+ document.getElementById('lessonDesc').textContent = lesson.desc;
+ document.getElementById('learning-banner').classList.remove('hidden');
+
+ closeModal('learnModal');
+ sync3DBoardFromState();
+ updateHUD();
+ }
+
+ function exitLesson() {
+ document.getElementById('learning-banner').classList.add('hidden');
+ startNewGame('ai', state.aiDifficulty);
+ }
+
+ /**
+ * ============================================================================
+ * 12. UI HELPERS, CLOCKS, PREFERENCES & INITIALIZATION
+ * ============================================================================
+ */
+ function updateHUD() {
+ const badge = document.getElementById('turnBadge');
+ const dot = document.getElementById('turnDot');
+ const text = document.getElementById('turnText');
+ const aiTierBadge = document.getElementById('aiTierBadge');
+
+ if (aiTierBadge) {
+ if (state.gameMode === 'ai') {
+ aiTierBadge.classList.remove('hidden');
+ aiTierBadge.classList.add('flex');
+ const meta = AI_DIFFICULTY_META[state.aiDifficulty] || AI_DIFFICULTY_META.intermediate;
+ aiTierBadge.innerHTML = `<span>${meta.badge}</span>`;
+ } else if (state.gameMode === 'local') {
+ aiTierBadge.classList.remove('hidden');
+ aiTierBadge.classList.add('flex');
+ aiTierBadge.innerHTML = `<span>👥 雙人同機</span>`;
+ } else if (state.gameMode === 'wifi') {
+ aiTierBadge.classList.remove('hidden');
+ aiTierBadge.classList.add('flex');
+ aiTierBadge.innerHTML = `<span>📡 連線對戰</span>`;
+ } else {
+ aiTierBadge.classList.add('hidden');
+ aiTierBadge.classList.remove('flex');
+ }
+ }
+
+ if (state.gameOver) {
+ badge.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-amber-700/90 border border-amber-300 text-white font-bold text-xs sm:text-sm whitespace-nowrap shrink-0';
+ dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-200 shrink-0';
+ text.textContent = '對局結束';
+ } else if (state.turn === 'r') {
+ badge.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-red-900/85 border border-red-400/60 text-amber-100 font-bold text-xs sm:text-sm whitespace-nowrap shrink-0';
+ dot.className = 'w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shrink-0';
+ text.textContent = state.aiThinking ? '紅方 AI 思考中...' : '紅方走棋';
+ } else {
+ badge.className = 'flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-950/90 border border-emerald-400/60 text-emerald-100 font-bold text-xs sm:text-sm whitespace-nowrap shrink-0';
+ dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0';
+ text.textContent = state.aiThinking ? '黑方 AI 思考中...' : '黑方走棋';
+ }
+
+ document.getElementById('moveCountBadge').textContent = state.history.length;
+ const listEl = document.getElementById('moveHistoryList');
+ if (state.history.length === 0) {
+ listEl.innerHTML = '<div class="text-amber-200/50 text-center py-8">尚未落子</div>';
+ } else {
+ listEl.innerHTML = state.history.map((h, i) => {
+ const isRed = i % 2 === 0;
+ const round = Math.floor(i / 2) + 1;
+ return `
+ <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg ${isRed ? 'bg-red-950/40 text-amber-200' : 'bg-stone-800/60 text-emerald-200'}">
+ <span class="text-amber-400/70">${round}. ${isRed ? '紅' : '黑'}</span>
+ <span class="font-bold tracking-wider">${h.notation}</span>
+ </div>
+ `;
+ }).join('');
+ listEl.scrollTop = listEl.scrollHeight;
+ }
+ }
+
+ function triggerCheckAlert(mainText, subText) {
+ const banner = document.getElementById('checkBanner');
+ document.getElementById('checkBannerText').textContent = mainText;
+ document.getElementById('checkBannerSub').textContent = subText;
+ banner.classList.remove('hidden', 'check-alert-anim');
+ void banner.offsetWidth;
+ banner.classList.add('check-alert-anim');
+ setTimeout(() => banner.classList.add('hidden'), 1850);
+ }
+
+ function showToast(msg) {
+ const container = document.getElementById('toastContainer');
+ const el = document.createElement('div');
+ el.className = 'glass-panel px-4 py-2 rounded-full text-xs sm:text-sm font-semibold text-amber-100 border-amber-400/50 shadow-xl transition-all duration-300';
+ el.textContent = msg;
+ container.appendChild(el);
+ setTimeout(() => {
+ el.style.opacity = '0';
+ el.style.transform = 'translateY(8px)';
+ setTimeout(() => el.remove(), 300);
+ }, 2600);
+ }
+
+ function openModal(id) {
+ if (id === 'saveModal') renderSaveSlots();
+ document.getElementById(id).classList.remove('hidden');
+ }
+
+ function closeModal(id) {
+ document.getElementById(id).classList.add('hidden');
+ }
+
+ function toggleHistoryDrawer() {
+ document.getElementById('historyDrawer').classList.toggle('hidden');
+ }
+
+ function toggleSound() {
+ state.soundEnabled = !state.soundEnabled;
+ document.getElementById('soundToggleBtn').textContent = state.soundEnabled ? '🔊' : '🔇';
+ savePreferencesToLocal();
+ showToast(state.soundEnabled ? '🔊 已開啟落子音效' : '🔇 已靜音');
+ }
+
+ function setBoardTheme(theme) {
+ state.boardTheme = theme;
+ if (boardSurfaceMat) {
+ boardSurfaceMat.map = createWoodTexture(theme);
+ boardSurfaceMat.needsUpdate = true;
+ }
+ savePreferencesToLocal();
+ showToast('已切換棋盤木質外觀');
+ }
+
+ function changePieceOrientation(mode, silent = false) {
+ const validModes = ['same_forward', 'opposite', 'bottom', 'top'];
+ if (!validModes.includes(mode)) mode = 'same_forward';
+ state.pieceOrientation = mode;
+
+ const quickSelect = document.getElementById('quickPieceOrientationSelect');
+ const settingsSelect = document.getElementById('pieceOrientationSelect');
+ const hintEl = document.getElementById('pieceOrientationHint');
+
+ if (quickSelect) quickSelect.value = mode;
+ if (settingsSelect) settingsSelect.value = mode;
+ if (hintEl) hintEl.textContent = PIECE_ORIENTATION_LABELS[mode] || '';
+
+ applyPieceOrientations();
+ savePreferencesToLocal();
+
+ if (!silent) {
+ const shortNames = {
+ 'same_forward': '相同向正前',
+ 'opposite': '逆向各自方向',
+ 'bottom': '全部朝向下方',
+ 'top': '全部朝向上方'
+ };
+ showToast(`🧭 棋子方向已切換為：${shortNames[mode]}`);
+ }
+ }
+
+ function toggleBoardLock(locked, silent = false) {
+ state.boardLocked = !!locked;
+ const bottomCb = document.getElementById('lockBoardCheckbox');
+ const settingsCb = document.getElementById('settingsLockBoardCheckbox');
+ const labelEl = document.getElementById('lockBoardLabel');
+
+ if (bottomCb) bottomCb.checked = state.boardLocked;
+ if (settingsCb) settingsCb.checked = state.boardLocked;
+ if (labelEl) labelEl.textContent = state.boardLocked ? '🔒 已鎖定棋盤' : '🔓 鎖定棋盤';
+
+ savePreferencesToLocal();
+ if (!silent) {
+ showToast(state.boardLocked ? '🔒 已鎖定 3D 棋盤，無法拖曳或縮放' : '🔓 已解鎖 3D 棋盤，可自由旋轉縮放');
+ }
+ }
+
+ function savePreferencesToLocal() {
+ try {
+ localStorage.setItem('xq3d_prefs', JSON.stringify({
+ pieceOrientation: state.pieceOrientation,
+ boardTheme: state.boardTheme,
+ soundEnabled: state.soundEnabled,
+ playerSide: state.playerSide,
+ aiDifficulty: state.aiDifficulty,
+ boardLocked: state.boardLocked
+ }));
+ } catch (e) {}
+ }
+
+ function loadPreferencesFromLocal() {
+ try {
+ const raw = localStorage.getItem('xq3d_prefs');
+ if (!raw) return;
+ const prefs = JSON.parse(raw);
+ if (prefs.pieceOrientation) changePieceOrientation(prefs.pieceOrientation, true);
+ if (prefs.boardTheme) state.boardTheme = prefs.boardTheme;
+ if (typeof prefs.soundEnabled === 'boolean') {
+ state.soundEnabled = prefs.soundEnabled;
+ document.getElementById('soundToggleBtn').textContent = state.soundEnabled ? '🔊' : '🔇';
+ }
+ if (prefs.playerSide) selectPlayerSide(prefs.playerSide);
+ if (prefs.aiDifficulty) changeAiDifficulty(prefs.aiDifficulty, true);
+ if (typeof prefs.boardLocked === 'boolean') toggleBoardLock(prefs.boardLocked, true);
+ } catch (e) {}
+ }
+
+ function escapeHTML(str) {
+ return str.replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+ }
+
+ function startClocks() {
+ const pad = n => String(n).padStart(2, '0');
+ setInterval(() => {
+ const now = new Date();
+ document.getElementById('liveClock').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+ if (!state.gameOver) {
+ state.gameSeconds++;
+ state.stepSeconds++;
+ document.getElementById('gameTimer').textContent = `${pad(Math.floor(state.gameSeconds / 60))}:${pad(state.gameSeconds % 60)}`;
+ document.getElementById('stepTimer').textContent = `${pad(Math.floor(state.stepSeconds / 60))}:${pad(state.stepSeconds % 60)}`;
+ }
+ }, 1000);
+ }
+
+ // Boot Application on Window Load
+ window.onload = function () {
+ loadPreferencesFromLocal();
+ state.board = cloneBoard(INITIAL_BOARD);
+ init3DScene();
+ detectDeviceAndAdaptViewport(true);
+ camOrbit.radius = camOrbit.targetRadius;
+ camOrbit.phi = camOrbit.targetPhi;
+ sync3DBoardFromState();
+ changePieceOrientation(state.pieceOrientation, true);
+ changeAiDifficulty(state.aiDifficulty, true);
+ updateHUD();
+ startClocks();
+ animateLoop();
+ };
+ </script>
+</body>
+</html>
