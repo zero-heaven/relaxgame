@@ -1,0 +1,1994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8" />
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+ <title>1941: Pacific Skies 3D</title>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+ <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+ <style>
+ * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+ body, html { width: 100%; height: 100%; overflow: hidden; background: #0f172a; font-family: sans-serif; color: #f8fafc; }
+ #game-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+ .hidden { display: none !important; }
+ #hud { display: none; position: fixed; top: 0; left: 0; width: 100%; padding: 10px 14px; pointer-events: none; z-index: 10; }
+ .hud-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+ .hud-box { background: rgba(15, 23, 42, 0.72); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 7px; padding: 6px 11px; }
+ .hud-label { font-size: 10px; text-transform: uppercase; color: #94a3b8; }
+ .hud-val { font-size: 15px; font-weight: bold; color: #38bdf8; }
+ .bar-track { width: 115px; height: 7px; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 3px; }
+ #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #ef4444, #22c55e); transition: width 0.2s; }
+ #fuel-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #f97316, #38bdf8); transition: width 0.2s; }
+ #btn-pause { pointer-events: auto; background: #f59e0b; color: #0f172a; border: none; padding: 6px 11px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; }
+
+ #special-skills-bar { pointer-events: auto; position: fixed; bottom: 10px; right: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 15; align-items: flex-end; }
+ .skill-btn { position: relative; min-width: 74px; padding: 5px 8px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,0.55); color: #ffffff; font-weight: bold; font-size: 10px; line-height: 1.15; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.4); transition: transform 0.12s, opacity 0.2s; text-align: center; opacity: 0.86; }
+ .skill-btn:hover, .skill-btn:active { opacity: 1; transform: scale(0.95); }
+ .skill-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+ #fire-btn { background: linear-gradient(135deg, #0ea5e9, #2563eb); border-color: #bae6fd; font-size: 10px; padding: 6px 9px; }
+ #lightning-btn { background: linear-gradient(135deg, #0284c7, #6366f1); border-color: #7dd3fc; }
+ #concussion-btn { background: linear-gradient(135deg, #d97706, #ea580c); border-color: #fde047; }
+ #bomb-btn { background: linear-gradient(135deg, #dc2626, #991b1b); border-color: #fef08a; font-size: 10px; padding: 6px 9px; }
+
+ #stage-banner { position: fixed; top: 32%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity 0.5s; z-index: 12; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+ #banner-stage { font-size: 16px; color: #facc15; letter-spacing: 3px; font-weight: bold; }
+ #banner-name { font-size: 36px; font-weight: 900; color: #ffffff; }
+ #pickup-toast { position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%); font-size: 20px; font-weight: 900; color: #facc15; text-shadow: 0 2px 8px rgba(0,0,0,0.9); pointer-events: none; opacity: 0; transition: opacity 0.3s, transform 0.3s; z-index: 14; }
+ #screen-flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; z-index: 13; transition: opacity 0.15s; }
+ .screen { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.88); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 16px 14px 28px; z-index: 20; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+ .panel { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 18px 20px; width: 100%; max-width: 480px; text-align: center; margin: auto 0; }
+ h1 { font-size: 26px; color: #38bdf8; margin-bottom: 6px; }
+ h2 { font-size: 20px; color: #facc15; margin-bottom: 10px; }
+ p.sub { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+ input[type="text"], select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #f8fafc; font-size: 15px; margin-top: 6px; margin-bottom: 12px; }
+ .btn { display: block; width: 100%; padding: 12px; margin-bottom: 10px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+ .btn-primary { background: #2563eb; color: white; }
+ .btn-success { background: #10b981; color: #0f172a; }
+ .btn-warning { background: #f59e0b; color: #0f172a; }
+ .btn-danger { background: #ef4444; color: white; }
+ .btn-secondary { background: #334155; color: #f8fafc; }
+ .row-btns { display: flex; gap: 10px; }
+ .room-code-box { font-size: 30px; font-weight: 900; letter-spacing: 6px; color: #facc15; background: #0f172a; padding: 10px; border-radius: 8px; margin: 10px 0; border: 1px dashed #facc15; }
+ ul.player-list { list-style: none; text-align: left; background: #0f172a; padding: 10px; border-radius: 8px; margin: 10px 0; font-size: 14px; }
+ .setting-row { text-align: left; margin-bottom: 10px; font-size: 14px; }
+ .checkbox-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; color: #e2e8f0; cursor: pointer; }
+ .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: #38bdf8; cursor: pointer; }
+ input[type="range"] { width: 100%; margin-top: 4px; accent-color: #38bdf8; cursor: pointer; }
+ table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+ th, td { padding: 8px; border-bottom: 1px solid #334155; text-align: center; }
+ th { color: #38bdf8; }
+ .controls-hint { font-size: 12px; color: #94a3b8; margin-top: 10px; line-height: 1.4; }
+ </style>
+</head>
+<body>
+ <canvas id="game-canvas"></canvas>
+ <div id="screen-flash"></div>
+
+ <div id="hud">
+ <div class="hud-top">
+ <div class="hud-box">
+ <div class="hud-label">Score / Stage</div>
+ <div class="hud-val"><span id="hud-score">0</span> &bull; LVL <span id="hud-stage">1</span></div>
+ <div style="font-size:11px; color:#facc15; margin-top:2px;">Targets: <span id="hud-kills">0/12</span> &bull; Weapon LVL <span id="hud-weapon">1</span></div>
+ <div id="mp-status-badge" style="font-size:11px; color:#a7f3d0; margin-top:2px;">Solo Mission</div>
+ </div>
+ <div class="hud-box">
+ <div class="hud-label">Mission Timer</div>
+ <div class="hud-val" id="hud-timer">00:00</div>
+ </div>
+ <div class="hud-box">
+ <div class="hud-label">Armor &amp; Fuel</div>
+ <div class="bar-track"><div id="hp-bar"></div></div>
+ <div class="bar-track"><div id="fuel-bar"></div></div>
+ <div style="font-size:11px; margin-top:3px;">Bombs: <span id="hud-bombs">💣💣💣</span></div>
+ </div>
+ <button id="btn-pause">⏸ PAUSE</button>
+ </div>
+ <div id="stage-banner">
+ <div id="banner-stage">STAGE 1 OF 22</div>
+ <div id="banner-name">MIDWAY ATOLL</div>
+ </div>
+ <div id="pickup-toast">+100 SCORE</div>
+ <div id="special-skills-bar">
+ <button id="fire-btn" class="skill-btn">🔫 射擊 FIRE</button>
+ <button id="lightning-btn" class="skill-btn">⚡ 雷電<br><span id="lightning-cd">READY</span></button>
+ <button id="concussion-btn" class="skill-btn">💥 震撼<br><span id="concussion-cd">READY</span></button>
+ <button id="bomb-btn" class="skill-btn">💣 轟炸</button>
+ </div>
+ </div>
+
+ <div id="screen-menu" class="screen">
+ <div class="panel">
+ <h1>1941: PACIFIC 3D</h1>
+ <p class="sub">22-Stage Naval Air Combat &bull; Squadron Wi-Fi Co-Op</p>
+ <div class="setting-row">
+ <label for="pilot-name-input">Callsign / Pilot Name</label>
+ <input type="text" id="pilot-name-input" value="ACE-1" maxlength="12" />
+ </div>
+ <div class="setting-row">
+ <label for="stage-select">Select Starting Stage / Battle (1 - 22)</label>
+ <select id="stage-select"></select>
+ </div>
+ <button id="btn-start-solo" class="btn btn-primary">✈ Launch Solo Mission</button>
+ <button id="btn-open-mp" class="btn btn-success">📡 Wi-Fi Squadron Battle (Up to 4 Players)</button>
+ <div class="row-btns">
+ <button id="btn-open-settings" class="btn btn-secondary">⚙ Flight Settings</button>
+ <button id="btn-open-leaderboard" class="btn btn-warning">🏆 Top 10 Aces</button>
+ </div>
+ <div class="controls-hint">
+ Desktop: WASD / Arrows to Move &bull; Z / Click / Fire Btn &bull; E: 雷電 &bull; Q: 震撼 &bull; Space/B: 轟炸 &bull; P: Pause<br>
+ Mobile: Touch &amp; Drag Anywhere to Fly &bull; Compact Corner Buttons
+ </div>
+ </div>
+ </div>
+
+ <div id="screen-mp" class="screen hidden">
+ <div class="panel">
+ <h2>SQUADRON WI-FI LINK</h2>
+ <p class="sub">Host generates a 4-digit room code (4 Players Max)</p>
+ <div class="row-btns">
+ <button id="btn-host-room" class="btn btn-primary">Create Room (Host)</button>
+ <button id="btn-show-join" class="btn btn-success">Join Room (Wingman)</button>
+ </div>
+ <div id="mp-host-panel" class="hidden">
+ <div class="hud-label" style="margin-top:10px;">SHARE THIS 4-DIGIT ROOM CODE</div>
+ <div id="host-room-code" class="room-code-box">----</div>
+ <p id="host-status" class="sub">Initializing Wi-Fi relay...</p>
+ <ul id="host-player-list" class="player-list"></ul>
+ <button id="btn-mp-launch" class="btn btn-warning">🚀 Launch Squadron Sortie</button>
+ </div>
+ <div id="mp-join-panel" class="hidden">
+ <input type="text" id="join-code-input" placeholder="Enter 4-Digit Room Code" maxlength="4" />
+ <button id="btn-connect-room" class="btn btn-success">Connect</button>
+ <p id="join-status" class="sub"></p>
+ <ul id="client-player-list" class="player-list"></ul>
+ </div>
+ <button id="btn-mp-back" class="btn btn-secondary" style="margin-top:10px;">Back to Base</button>
+ </div>
+ </div>
+
+ <div id="screen-settings" class="screen hidden">
+ <div class="panel">
+ <h2>FLIGHT SETTINGS</h2>
+ <div class="setting-row">
+ <label>Difficulty</label>
+ <select id="set-difficulty">
+ <option value="easy">Cadet (Easy)</option>
+ <option value="normal" selected>Veteran (Normal)</option>
+ <option value="hard">Ace (Hard)</option>
+ </select>
+ </div>
+ <div class="setting-row">
+ <label>3D Graphics Resolution &amp; Quality</label>
+ <select id="set-quality">
+ <option value="low">Low (Battery Saver)</option>
+ <option value="high" selected>High (Ultra HD DPR &amp; Shadows)</option>
+ </select>
+ </div>
+ <div class="setting-row">
+ <label>Auto-Fire Cannons</label>
+ <select id="set-autofire">
+ <option value="true" selected>Enabled</option>
+ <option value="false">Manual Only (Z / Click / Fire Btn)</option>
+ </select>
+ </div>
+ <div class="setting-row" style="background: rgba(15,23,42,0.55); padding: 10px 12px; border-radius: 8px; border: 1px solid rgba(56,189,248,0.35);">
+ <label for="set-board-scale" style="color:#7dd3fc; font-weight:bold;">✈ 戰場物體與飛機整體縮放 (All Board Objects Scale): <span id="board-scale-label">1.00</span>x</label>
+ <input type="range" id="set-board-scale" min="0.40" max="1.60" step="0.05" value="1.00" />
+ </div>
+ <div class="setting-row">
+ <label>射擊與特別能力按鈕開關 (Shooting &amp; Special Buttons)</label>
+ <label class="checkbox-row">
+ <input type="checkbox" id="set-skill-fire" checked />
+ <span>🔫 射擊按鈕 (Fire Button)</span>
+ </label>
+ <label class="checkbox-row">
+ <input type="checkbox" id="set-skill-lightning" checked />
+ <span>⚡ 雷電射擊按鈕 (Lightning Strike [E])</span>
+ </label>
+ <label class="checkbox-row">
+ <input type="checkbox" id="set-skill-concussion" checked />
+ <span>💥 震撼彈按鈕 (Concussion Shell [Q])</span>
+ </label>
+ <label class="checkbox-row">
+ <input type="checkbox" id="set-skill-bomb" checked />
+ <span>💣 轟炸按鈕 (Mega Bomb [Space/B])</span>
+ </label>
+ </div>
+ <div class="setting-row">
+ <label>Sound FX Volume: <span id="vol-label">0.6</span></label>
+ <input type="range" id="set-volume" min="0" max="1" step="0.1" value="0.6" />
+ </div>
+ <div class="setting-row">
+ <label>Touch / Mouse Sensitivity: <span id="sens-label">1.2</span></label>
+ <input type="range" id="set-sens" min="0.5" max="2.5" step="0.1" value="1.2" />
+ </div>
+ <div class="row-btns">
+ <button id="btn-export-json" class="btn btn-secondary">⬇ Export (.json)</button>
+ <button id="btn-import-json" class="btn btn-secondary">⬆ Import JSON</button>
+ <input type="file" id="json-file-input" accept=".json" class="hidden" />
+ </div>
+ <button id="btn-save-settings" class="btn btn-primary" style="margin-top:8px;">Save &amp; Return</button>
+ </div>
+ </div>
+
+ <div id="screen-leaderboard" class="screen hidden">
+ <div class="panel">
+ <h2>TOP 10 ACES</h2>
+ <table>
+ <thead>
+ <tr><th>Rank</th><th>Pilot</th><th>Stage</th><th>Score</th><th>Date</th></tr>
+ </thead>
+ <tbody id="leaderboard-body"></tbody>
+ </table>
+ <div class="row-btns">
+ <button id="btn-reset-scores" class="btn btn-danger">Reset Leaderboard</button>
+ <button id="btn-lb-back" class="btn btn-secondary">Back to Base</button>
+ </div>
+ </div>
+ </div>
+
+ <div id="screen-pause" class="screen hidden">
+ <div class="panel">
+ <h2>MISSION PAUSED</h2>
+ <button id="btn-resume" class="btn btn-success">▶ Resume Mission</button>
+ <button id="btn-quit-mission" class="btn btn-danger">Abort to Main Menu</button>
+ </div>
+ </div>
+
+ <div id="screen-gameover" class="screen hidden">
+ <div class="panel">
+ <h2 id="go-title">MISSION FAILED</h2>
+ <p id="go-summary" class="sub">Final Score: 0</p>
+ <p id="new-record-badge" class="hidden" style="color:#facc15; font-weight:bold; margin-bottom:12px;">★ NEW TOP 10 RECORD SAVED! ★</p>
+ <button id="btn-go-lb" class="btn btn-warning">View Top 10 Aces</button>
+ <button id="btn-go-menu" class="btn btn-primary">Return to Base</button>
+ </div>
+ </div>
+
+ <script>
+ const STAGES = [
+ { num: 1, name: "MIDWAY ATOLL", sea: 0x0369a1, sky: 0x38bdf8, targetKills: 12, spawnRate: 1.5, speedMult: 1.0 },
+ { num: 2, name: "CORAL SEA", sea: 0x0284c7, sky: 0x7dd3fc, targetKills: 16, spawnRate: 1.35, speedMult: 1.08 },
+ { num: 3, name: "GUADALCANAL", sea: 0x0f766e, sky: 0x5eead4, targetKills: 20, spawnRate: 1.25, speedMult: 1.15 },
+ { num: 4, name: "ALEUTIAN MIST", sea: 0x1e3a8a, sky: 0x94a3b8, targetKills: 24, spawnRate: 1.15, speedMult: 1.22 },
+ { num: 5, name: "WAKE ISLAND", sea: 0x0369a1, sky: 0xfdba74, targetKills: 28, spawnRate: 1.05, speedMult: 1.30 },
+ { num: 6, name: "MARSHALL ISLANDS", sea: 0x1d4ed8, sky: 0xfb923c, targetKills: 32, spawnRate: 0.98, speedMult: 1.38 },
+ { num: 7, name: "PHILIPPINE SEA", sea: 0x1e40af, sky: 0xf87171, targetKills: 36, spawnRate: 0.90, speedMult: 1.45 },
+ { num: 8, name: "MARIANA TRENCH", sea: 0x172554, sky: 0xc084fc, targetKills: 42, spawnRate: 0.84, speedMult: 1.52 },
+ { num: 9, name: "LEYTE GULF", sea: 0x0f172a, sky: 0xe879f9, targetKills: 48, spawnRate: 0.78, speedMult: 1.60 },
+ { num: 10, name: "IWO JIMA VOLCANO", sea: 0x31102f, sky: 0xf43f5e, targetKills: 55, spawnRate: 0.72, speedMult: 1.68 },
+ { num: 11, name: "OKINAWA STORM", sea: 0x090d16, sky: 0x475569, targetKills: 62, spawnRate: 0.65, speedMult: 1.76 },
+ { num: 12, name: "TOKYO BAY FINAL", sea: 0x1e1b4b, sky: 0xfacc15, targetKills: 75, spawnRate: 0.58, speedMult: 1.85 },
+ { num: 13, name: "SOLOMON STRAIT", sea: 0x0c4a6e, sky: 0x38bdf8, targetKills: 82, spawnRate: 0.55, speedMult: 1.92 },
+ { num: 14, name: "BOUGAINVILLE REEF", sea: 0x115e59, sky: 0x2dd4bf, targetKills: 90, spawnRate: 0.52, speedMult: 1.99 },
+ { num: 15, name: "TRUK LAGOON", sea: 0x1e3a8a, sky: 0x60a5fa, targetKills: 98, spawnRate: 0.50, speedMult: 2.06 },
+ { num: 16, name: "SAIPAN BEACHHEAD", sea: 0x7c2d12, sky: 0xfb923c, targetKills: 106, spawnRate: 0.48, speedMult: 2.13 },
+ { num: 17, name: "PELELIU CORAL", sea: 0x134e4a, sky: 0x34d399, targetKills: 115, spawnRate: 0.46, speedMult: 2.20 },
+ { num: 18, name: "LUZON CONVOY", sea: 0x312e81, sky: 0x818cf8, targetKills: 125, spawnRate: 0.44, speedMult: 2.27 },
+ { num: 19, name: "FORMOSA STRAIT", sea: 0x4c1d95, sky: 0xc084fc, targetKills: 135, spawnRate: 0.42, speedMult: 2.34 },
+ { num: 20, name: "SULPHUR RIDGE", sea: 0x450a0a, sky: 0xf87171, targetKills: 145, spawnRate: 0.40, speedMult: 2.41 },
+ { num: 21, name: "SAGAMI SEA", sea: 0x172554, sky: 0xf472b6, targetKills: 160, spawnRate: 0.38, speedMult: 2.48 },
+ { num: 22, name: "IMPERIAL HARBOR ENDGAME", sea: 0x090d16, sky: 0xfacc15, targetKills: 180, spawnRate: 0.35, speedMult: 2.55 }
+ ];
+
+ const stageSelectEl = document.getElementById('stage-select');
+ STAGES.forEach((stg, idx) => {
+ const opt = document.createElement('option');
+ opt.value = idx;
+ opt.textContent = 'Stage ' + stg.num + ': ' + stg.name + ' (' + stg.targetKills + ' Targets)';
+ stageSelectEl.appendChild(opt);
+ });
+
+ class SoundEngine {
+ constructor() { this.ctx = null; this.volume = 0.6; }
+ init() {
+ if (!this.ctx) {
+ const AudioCtx = window.AudioContext || window.webkitAudioContext;
+ if (AudioCtx) this.ctx = new AudioCtx();
+ }
+ if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+ }
+ playTone(freq, endFreq, duration, type = 'sawtooth', gainMult = 0.3) {
+ if (!this.ctx || this.volume <= 0) return;
+ const now = this.ctx.currentTime;
+ const osc = this.ctx.createOscillator();
+ const gain = this.ctx.createGain();
+ osc.type = type;
+ osc.frequency.setValueAtTime(freq, now);
+ osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+ gain.gain.setValueAtTime(this.volume * gainMult, now);
+ gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+ osc.connect(gain);
+ gain.connect(this.ctx.destination);
+ osc.start(now);
+ osc.stop(now + duration);
+ }
+ playNoise(duration, gainMult = 0.5, highCutoff = 1100) {
+ if (!this.ctx || this.volume <= 0) return;
+ const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+ const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+ const data = buffer.getChannelData(0);
+ for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+ const noise = this.ctx.createBufferSource();
+ noise.buffer = buffer;
+ const filter = this.ctx.createBiquadFilter();
+ filter.type = 'lowpass';
+ filter.frequency.setValueAtTime(highCutoff, this.ctx.currentTime);
+ filter.frequency.exponentialRampToValueAtTime(95, this.ctx.currentTime + duration);
+ const gain = this.ctx.createGain();
+ gain.gain.setValueAtTime(this.volume * gainMult, this.ctx.currentTime);
+ gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+ noise.connect(filter);
+ filter.connect(gain);
+ gain.connect(this.ctx.destination);
+ noise.start();
+ }
+ shoot() { this.playTone(760, 190, 0.08, 'square', 0.14); }
+ cannon() { this.playNoise(0.55, 0.65, 950); this.playTone(110, 28, 0.45, 'sawtooth', 0.42); }
+ lightning() { this.playNoise(0.32, 0.5, 2200); this.playTone(1450, 210, 0.28, 'sawtooth', 0.35); }
+ concussion() { this.playNoise(0.75, 0.72, 1200); this.playTone(180, 24, 0.65, 'triangle', 0.48); }
+ hit() { this.playTone(240, 95, 0.08, 'triangle', 0.25); }
+ explosion() { this.playNoise(0.45, 0.55, 1000); this.playTone(120, 30, 0.4, 'sawtooth', 0.35); }
+ bomb() { this.playNoise(1.1, 0.85, 1100); this.playTone(150, 25, 0.9, 'sawtooth', 0.5); }
+ powerup() {
+ this.playTone(520, 880, 0.12, 'sine', 0.35);
+ setTimeout(() => this.playTone(880, 1320, 0.16, 'triangle', 0.35), 90);
+ }
+ scaleChange() {
+ this.playTone(440, 660, 0.09, 'sine', 0.25);
+ }
+ stageClear() {
+ [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+ setTimeout(() => this.playTone(f, f * 1.02, 0.2, 'triangle', 0.3), i * 110);
+ });
+ }
+ }
+ const sfx = new SoundEngine();
+
+ const DB_NAME = 'Pacific1941DB';
+ const DB_VERSION = 1;
+ let dbInstance = null;
+ const defaultSettings = {
+ id: 'user_settings', pilotName: 'ACE-1', difficulty: 'normal', quality: 'high',
+ autofire: true, volume: 0.6, sensitivity: 1.2, boardScale: 1.0,
+ skills: { fire: true, lightning: true, concussion: true, bomb: true }
+ };
+ let appSettings = {
+ ...defaultSettings,
+ skills: { ...defaultSettings.skills }
+ };
+
+ function cleanSettingsObj(obj) {
+ const cleaned = {
+ ...defaultSettings,
+ ...(obj || {}),
+ id: 'user_settings',
+ skills: { ...defaultSettings.skills, ...((obj && obj.skills) || {}) }
+ };
+ delete cleaned.planeScale;
+ delete cleaned.enemyPlaneScale;
+ return cleaned;
+ }
+
+ function openDB() {
+ return new Promise((resolve, reject) => {
+ if (!window.indexedDB) {
+ reject(new Error('IndexedDB unavailable'));
+ return;
+ }
+ const req = indexedDB.open(DB_NAME, DB_VERSION);
+ req.onupgradeneeded = (e) => {
+ const db = e.target.result;
+ if (!db.objectStoreNames.contains('settings')) db.createObjectStore('settings', { keyPath: 'id' });
+ if (!db.objectStoreNames.contains('scores')) db.createObjectStore('scores', { keyPath: 'id', autoIncrement: true });
+ };
+ req.onsuccess = (e) => { dbInstance = e.target.result; resolve(dbInstance); };
+ req.onerror = (e) => reject(e);
+ });
+ }
+
+ async function loadSettingsFromDB() {
+ try {
+ await openDB();
+ return await new Promise((resolve) => {
+ const tx = dbInstance.transaction('settings', 'readonly');
+ const req = tx.objectStore('settings').get('user_settings');
+ req.onsuccess = () => {
+ if (req.result) {
+ appSettings = cleanSettingsObj(req.result);
+ }
+ applySettingsToUI();
+ applyGraphicsQuality();
+ applyBoardObjectsScale();
+ resolve(appSettings);
+ };
+ req.onerror = () => { applySettingsToUI(); applyGraphicsQuality(); applyBoardObjectsScale(); resolve(appSettings); };
+ });
+ } catch (e) {
+ applySettingsToUI();
+ applyGraphicsQuality();
+ applyBoardObjectsScale();
+ return appSettings;
+ }
+ }
+
+ async function saveSettingsToDB() {
+ appSettings = cleanSettingsObj(appSettings);
+ try {
+ if (!dbInstance) await openDB();
+ return await new Promise((resolve) => {
+ const tx = dbInstance.transaction('settings', 'readwrite');
+ tx.objectStore('settings').put(appSettings);
+ tx.oncomplete = () => resolve();
+ tx.onerror = () => resolve();
+ });
+ } catch (e) {}
+ }
+
+ function getFormattedDateDDMMYYYY() {
+ const d = new Date();
+ const dd = String(d.getDate()).padStart(2, '0');
+ const mm = String(d.getMonth() + 1).padStart(2, '0');
+ const yyyy = d.getFullYear();
+ return dd + '/' + mm + '/' + yyyy;
+ }
+
+ async function saveScoreToDB(name, stage, score) {
+ try {
+ if (!dbInstance) await openDB();
+ const entry = { name: (name || 'ACE-1').toUpperCase(), stage: stage, score: score, date: getFormattedDateDDMMYYYY() };
+ const all = await getTopScoresFromDB();
+ all.push(entry);
+ all.sort((a, b) => b.score - a.score);
+ const top10 = all.slice(0, 10);
+ return await new Promise((resolve) => {
+ const tx = dbInstance.transaction('scores', 'readwrite');
+ const store = tx.objectStore('scores');
+ store.clear();
+ top10.forEach(item => { store.add({ name: item.name, stage: item.stage, score: item.score, date: item.date }); });
+ tx.oncomplete = () => resolve(top10.some(s => s.score === entry.score && s.name === entry.name));
+ tx.onerror = () => resolve(false);
+ });
+ } catch (e) {
+ return false;
+ }
+ }
+
+ async function getTopScoresFromDB() {
+ try {
+ if (!dbInstance) await openDB();
+ return await new Promise((resolve) => {
+ const tx = dbInstance.transaction('scores', 'readonly');
+ const req = tx.objectStore('scores').getAll();
+ req.onsuccess = () => {
+ const list = req.result || [];
+ list.sort((a, b) => b.score - a.score);
+ resolve(list.slice(0, 10));
+ };
+ req.onerror = () => resolve([]);
+ });
+ } catch (e) {
+ return [];
+ }
+ }
+
+ async function clearScoresDB() {
+ try {
+ if (!dbInstance) await openDB();
+ return await new Promise((resolve) => {
+ const tx = dbInstance.transaction('scores', 'readwrite');
+ tx.objectStore('scores').clear();
+ tx.oncomplete = () => resolve();
+ tx.onerror = () => resolve();
+ });
+ } catch (e) {}
+ }
+
+ function applySkillButtonsVisibility() {
+ const sk = appSettings.skills || defaultSettings.skills;
+ document.getElementById('fire-btn').classList.toggle('hidden', !sk.fire);
+ document.getElementById('lightning-btn').classList.toggle('hidden', !sk.lightning);
+ document.getElementById('concussion-btn').classList.toggle('hidden', !sk.concussion);
+ document.getElementById('bomb-btn').classList.toggle('hidden', !sk.bomb);
+ }
+
+ function applySettingsToUI() {
+ document.getElementById('pilot-name-input').value = appSettings.pilotName;
+ document.getElementById('set-difficulty').value = appSettings.difficulty;
+ document.getElementById('set-quality').value = appSettings.quality;
+ document.getElementById('set-autofire').value = String(appSettings.autofire);
+ const bScale = Math.max(0.40, Math.min(1.60, parseFloat(appSettings.boardScale) || 1.0));
+ document.getElementById('set-board-scale').value = bScale.toFixed(2);
+ document.getElementById('board-scale-label').textContent = bScale.toFixed(2);
+ document.getElementById('set-skill-fire').checked = Boolean(appSettings.skills?.fire);
+ document.getElementById('set-skill-lightning').checked = Boolean(appSettings.skills?.lightning);
+ document.getElementById('set-skill-concussion').checked = Boolean(appSettings.skills?.concussion);
+ document.getElementById('set-skill-bomb').checked = Boolean(appSettings.skills?.bomb);
+ document.getElementById('set-volume').value = appSettings.volume;
+ document.getElementById('vol-label').textContent = appSettings.volume;
+ document.getElementById('set-sens').value = appSettings.sensitivity;
+ document.getElementById('sens-label').textContent = appSettings.sensitivity;
+ sfx.volume = parseFloat(appSettings.volume);
+ applySkillButtonsVisibility();
+ }
+
+ function createDetailedFighterPlane(primaryColor = 0x2563eb, accentColor = 0xf59e0b, isEnemy = false) {
+ const plane = new THREE.Group();
+ const bodyMat = new THREE.MeshStandardMaterial({ color: primaryColor, metalness: 0.62, roughness: 0.32 });
+ const trimMat = new THREE.MeshStandardMaterial({ color: accentColor, metalness: 0.45, roughness: 0.38 });
+ const darkMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.75, roughness: 0.28 });
+ const canopyMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.35, metalness: 0.92, roughness: 0.1 });
+
+ const noseGeo = new THREE.CylinderGeometry(0.38, 0.52, 1.85, 48, 8);
+ noseGeo.rotateX(Math.PI / 2);
+ const nose = new THREE.Mesh(noseGeo, bodyMat);
+ nose.position.z = -1.35;
+ plane.add(nose);
+
+ const midGeo = new THREE.CylinderGeometry(0.52, 0.43, 2.0, 48, 8);
+ midGeo.rotateX(Math.PI / 2);
+ const mid = new THREE.Mesh(midGeo, bodyMat);
+ mid.position.z = 0.35;
+ plane.add(mid);
+
+ const tailConeGeo = new THREE.CylinderGeometry(0.43, 0.11, 2.35, 48, 8);
+ tailConeGeo.rotateX(Math.PI / 2);
+ const tailCone = new THREE.Mesh(tailConeGeo, bodyMat);
+ tailCone.position.z = 2.4;
+ plane.add(tailCone);
+
+ const cowlGeo = new THREE.TorusGeometry(0.39, 0.09, 24, 48);
+ const cowl = new THREE.Mesh(cowlGeo, darkMat);
+ cowl.position.z = -2.28;
+ plane.add(cowl);
+
+ const spinnerGeo = new THREE.ConeGeometry(0.20, 0.68, 40, 6);
+ spinnerGeo.rotateX(-Math.PI / 2);
+ const spinner = new THREE.Mesh(spinnerGeo, trimMat);
+ spinner.position.z = -2.58;
+ plane.add(spinner);
+
+ const propGroup = new THREE.Group();
+ propGroup.position.z = -2.42;
+ const bladeGeo = new THREE.BoxGeometry(0.11, 1.65, 0.03);
+ for (let i = 0; i < 3; i++) {
+ const blade = new THREE.Mesh(bladeGeo, darkMat);
+ blade.rotation.z = (i * Math.PI * 2) / 3;
+ propGroup.add(blade);
+ }
+ plane.add(propGroup);
+ plane.userData.propeller = propGroup;
+
+ const wingShape = new THREE.Shape();
+ wingShape.moveTo(0, -0.85);
+ wingShape.lineTo(3.85, -0.2);
+ wingShape.quadraticCurveTo(4.15, 0.18, 3.65, 0.58);
+ wingShape.lineTo(0, 0.92);
+ wingShape.lineTo(-3.65, 0.58);
+ wingShape.quadraticCurveTo(-4.15, 0.18, -3.85, -0.2);
+ wingShape.closePath();
+
+ const wingGeo = new THREE.ExtrudeGeometry(wingShape, { depth: 0.11, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.045, bevelSegments: 8, curveSegments: 32 });
+ wingGeo.rotateX(Math.PI / 2);
+ const wings = new THREE.Mesh(wingGeo, bodyMat);
+ wings.position.set(0, -0.05, -0.25);
+ plane.add(wings);
+
+ [-3.15, 3.15].forEach(xPos => {
+ const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.16, 0.72), trimMat);
+ stripe.position.set(xPos, -0.05, -0.1);
+ plane.add(stripe);
+ const gun = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 1.05, 24), darkMat);
+ gun.rotation.x = Math.PI / 2;
+ gun.position.set(xPos * 0.58, -0.08, -1.15);
+ plane.add(gun);
+ });
+
+ const canopyGeo = new THREE.SphereGeometry(0.34, 48, 36);
+ canopyGeo.scale(0.82, 0.72, 2.45);
+ const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+ canopy.position.set(0, 0.42, 0.18);
+ plane.add(canopy);
+
+ const hStab = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.075, 0.68), trimMat);
+ hStab.position.set(0, 0.05, 3.15);
+ plane.add(hStab);
+
+ const vStab = new THREE.Mesh(new THREE.BoxGeometry(0.085, 1.12, 0.82), trimMat);
+ vStab.position.set(0, 0.55, 3.12);
+ plane.add(vStab);
+
+ const tankGeo = new THREE.CylinderGeometry(0.13, 0.13, 1.45, 28);
+ tankGeo.rotateX(Math.PI / 2);
+ const tank = new THREE.Mesh(tankGeo, darkMat);
+ tank.position.set(0, -0.52, -0.15);
+ plane.add(tank);
+
+ plane.traverse(obj => {
+ if (obj.isMesh) {
+ obj.castShadow = true;
+ obj.receiveShadow = true;
+ }
+ });
+
+ if (isEnemy) plane.rotation.y = Math.PI;
+ return plane;
+ }
+
+ function createBattleshipMesh() {
+ const ship = new THREE.Group();
+ const hullMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.72, roughness: 0.28 });
+ const armorBeltMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.82, roughness: 0.25 });
+ const deckMat = new THREE.MeshStandardMaterial({ color: 0x7c2d12, metalness: 0.42, roughness: 0.48 });
+ const superMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.68, roughness: 0.32 });
+ const barrelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.2 });
+ const redBootMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, metalness: 0.5, roughness: 0.4 });
+
+ const hullShape = new THREE.Shape();
+ hullShape.moveTo(0, 16.8);
+ hullShape.bezierCurveTo(1.35, 13.5, 2.25, 8.2, 2.35, 1.5);
+ hullShape.lineTo(2.35, -10.5);
+ hullShape.bezierCurveTo(2.25, -13.6, 1.35, -15.4, 0, -15.8);
+ hullShape.bezierCurveTo(-1.35, -15.4, -2.25, -13.6, -2.35, -10.5);
+ hullShape.lineTo(-2.35, 1.5);
+ hullShape.bezierCurveTo(-2.25, 8.2, -1.35, 13.5, 0, 16.8);
+
+ const hullGeo = new THREE.ExtrudeGeometry(hullShape, {
+ depth: 1.55,
+ bevelEnabled: true,
+ bevelThickness: 0.22,
+ bevelSize: 0.18,
+ bevelSegments: 6,
+ curveSegments: 48
+ });
+ hullGeo.rotateX(Math.PI / 2);
+ const hull = new THREE.Mesh(hullGeo, hullMat);
+ hull.position.set(0, -0.35, 0);
+ ship.add(hull);
+
+ const beltGeo = new THREE.BoxGeometry(4.55, 0.55, 25.5, 6, 2, 32);
+ const belt = new THREE.Mesh(beltGeo, armorBeltMat);
+ belt.position.set(0, -1.45, 0.3);
+ ship.add(belt);
+
+ const keelGeo = new THREE.BoxGeometry(4.1, 0.38, 24.0, 4, 2, 24);
+ const keel = new THREE.Mesh(keelGeo, redBootMat);
+ keel.position.set(0, -1.82, 0.3);
+ ship.add(keel);
+
+ const deckShape = new THREE.Shape();
+ deckShape.moveTo(0, 15.8);
+ deckShape.bezierCurveTo(1.1, 12.8, 1.9, 7.8, 1.98, 1.5);
+ deckShape.lineTo(1.98, -9.8);
+ deckShape.bezierCurveTo(1.88, -12.6, 1.05, -14.3, 0, -14.7);
+ deckShape.bezierCurveTo(-1.05, -14.3, -1.88, -12.6, -1.98, -9.8);
+ deckShape.lineTo(-1.98, 1.5);
+ deckShape.bezierCurveTo(-1.9, 7.8, -1.1, 12.8, 0, 15.8);
+
+ const deckGeo = new THREE.ExtrudeGeometry(deckShape, {
+ depth: 0.16,
+ bevelEnabled: true,
+ bevelThickness: 0.04,
+ bevelSize: 0.04,
+ bevelSegments: 4,
+ curveSegments: 40
+ });
+ deckGeo.rotateX(Math.PI / 2);
+ const deck = new THREE.Mesh(deckGeo, deckMat);
+ deck.position.set(0, -0.25, 0);
+ ship.add(deck);
+
+ const superBase = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.85, 5.2, 4, 2, 8), superMat);
+ superBase.position.set(0, 0.18, 2.2);
+ ship.add(superBase);
+
+ const bridge = new THREE.Mesh(new THREE.BoxGeometry(1.95, 1.15, 3.2, 4, 3, 6), superMat);
+ bridge.position.set(0, 1.05, 1.8);
+ ship.add(bridge);
+
+ const conningTower = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.78, 0.75, 32), armorBeltMat);
+ conningTower.position.set(0, 1.88, 1.6);
+ ship.add(conningTower);
+
+ const funnel = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.62, 2.35, 36, 8), barrelMat);
+ funnel.position.set(0, 0.85, 5.4);
+ funnel.rotation.x = -0.08;
+ ship.add(funnel);
+
+ const funnelCap = new THREE.Mesh(new THREE.CylinderGeometry(0.54, 0.54, 0.22, 36), armorBeltMat);
+ funnelCap.position.set(0, 1.98, 5.3);
+ ship.add(funnelCap);
+
+ const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.18, 3.8, 24), superMat);
+ mast.position.set(0, 3.45, 2.0);
+ ship.add(mast);
+
+ const yardarm = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.08, 0.08), superMat);
+ yardarm.position.set(0, 4.35, 2.0);
+ ship.add(yardarm);
+
+ [-5.8, -1.2, 6.2, 10.2].forEach((zAA, idx) => {
+ const side = idx % 2 === 0 ? -1 : 1;
+ const aaMount = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.34, 0.35, 20), armorBeltMat);
+ aaMount.position.set(side * 1.55, -0.08, zAA);
+ ship.add(aaMount);
+ const aaBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.15, 12), barrelMat);
+ aaBarrel.rotation.x = Math.PI / 2 - 0.35;
+ aaBarrel.position.set(side * 1.55, 0.12, zAA - 0.35);
+ ship.add(aaBarrel);
+ });
+
+ const turretPositions = [-9.4, -4.4, 9.2];
+ const muzzlePoints = [];
+ turretPositions.forEach((zPos, idx) => {
+ const turret = new THREE.Group();
+ turret.position.set(0, idx === 1 ? 1.55 : 0.05, zPos);
+
+ const barbette = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.18, 0.55, 40), armorBeltMat);
+ barbette.position.y = -0.15;
+ turret.add(barbette);
+
+ const turretBody = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.68, 2.1, 4, 2, 4), superMat);
+ turretBody.position.set(0, 0.22, 0.15);
+ turret.add(turretBody);
+
+ [-0.36, 0.36].forEach(xGun => {
+ const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.15, 3.4, 28), barrelMat);
+ barrel.rotation.x = Math.PI / 2;
+ barrel.position.set(xGun, 0.26, -1.65);
+ turret.add(barrel);
+ });
+
+ ship.add(turret);
+ muzzlePoints.push({ turret, zPos, yOff: idx === 1 ? 1.85 : 0.3 });
+ });
+
+ ship.traverse(obj => {
+ if (obj.isMesh) {
+ obj.castShadow = true;
+ obj.receiveShadow = true;
+ }
+ });
+
+ ship.userData.muzzlePoints = muzzlePoints;
+ return ship;
+ }
+
+ const MP = { peer: null, isHost: false, roomCode: '', connections: [], hostConn: null, players: {}, remoteMeshes: {}, myColorIdx: 0 };
+ const SQUAD_COLORS = [0x2563eb, 0x10b981, 0xa855f7, 0xf97316];
+
+ function generate4DigitCode() { return String(Math.floor(1000 + Math.random() * 9000)); }
+
+ function updateLobbyUI() {
+ const listEl = MP.isHost ? document.getElementById('host-player-list') : document.getElementById('client-player-list');
+ listEl.innerHTML = '';
+ Object.entries(MP.players).forEach(([id, p], idx) => {
+ const li = document.createElement('li');
+ li.innerHTML = '✈ <strong>' + p.name + '</strong> ' + (idx === 0 ? '(Host)' : '') + ' - Ready';
+ listEl.appendChild(li);
+ });
+ }
+
+ function initHostRoom() {
+ cleanupMP();
+ if (typeof Peer === 'undefined') {
+ document.getElementById('host-status').textContent = 'PeerJS offline/unavailable. Check internet connection.';
+ return;
+ }
+ MP.isHost = true;
+ MP.myColorIdx = 0;
+ MP.roomCode = generate4DigitCode();
+ const peerId = 'pacific1941-room-' + MP.roomCode;
+ document.getElementById('host-room-code').textContent = MP.roomCode;
+ document.getElementById('host-status').textContent = 'Opening Wi-Fi channel...';
+
+ MP.peer = new Peer(peerId);
+ MP.peer.on('open', (id) => {
+ document.getElementById('host-status').textContent = 'Waiting for wingmen (Max 3 guests)...';
+ MP.players[id] = { name: appSettings.pilotName, x: 0, z: 12, bank: 0, hp: 100, colorIdx: 0 };
+ updateLobbyUI();
+ });
+ MP.peer.on('error', (err) => {
+ if (err.type === 'unavailable-id') initHostRoom();
+ else document.getElementById('host-status').textContent = 'Connection notice: ' + err.type;
+ });
+ MP.peer.on('connection', (conn) => {
+ if (MP.connections.length >= 3) {
+ conn.on('open', () => { conn.send({ type: 'full' }); setTimeout(() => conn.close(), 300); });
+ return;
+ }
+ MP.connections.push(conn);
+ conn.on('open', () => {
+ const colorIdx = MP.connections.length;
+ MP.players[conn.peer] = { name: 'Wingman', x: (colorIdx - 1.5) * 4, z: 12, bank: 0, hp: 100, colorIdx: colorIdx };
+ conn.send({ type: 'assignColor', colorIdx: colorIdx });
+ broadcastLobbyState();
+ });
+ conn.on('data', (data) => handleMPData(conn.peer, data));
+ conn.on('close', () => {
+ MP.connections = MP.connections.filter(c => c.peer !== conn.peer);
+ delete MP.players[conn.peer];
+ removeRemotePlane(conn.peer);
+ broadcastLobbyState();
+ });
+ });
+ }
+
+ function joinRoomByCode(code) {
+ if (!/^\d{4}$/.test(code)) {
+ document.getElementById('join-status').textContent = 'Please enter a valid 4-digit room number.';
+ return;
+ }
+ if (typeof Peer === 'undefined') {
+ document.getElementById('join-status').textContent = 'PeerJS offline/unavailable. Check internet connection.';
+ return;
+ }
+ cleanupMP();
+ MP.isHost = false;
+ MP.roomCode = code;
+ document.getElementById('join-status').textContent = 'Connecting to Room ' + code + '...';
+
+ MP.peer = new Peer();
+ MP.peer.on('open', () => {
+ const conn = MP.peer.connect('pacific1941-room-' + code);
+ MP.hostConn = conn;
+ conn.on('open', () => {
+ document.getElementById('join-status').textContent = 'Connected to Squadron ' + code + '! Waiting for host...';
+ conn.send({ type: 'hello', name: appSettings.pilotName });
+ });
+ conn.on('data', (data) => handleMPData('host', data));
+ conn.on('close', () => { document.getElementById('join-status').textContent = 'Disconnected from host.'; });
+ });
+ MP.peer.on('error', () => { document.getElementById('join-status').textContent = 'Room ' + code + ' not found.'; });
+ }
+
+ function broadcastLobbyState() {
+ updateLobbyUI();
+ const payload = { type: 'lobby', players: MP.players };
+ MP.connections.forEach(c => { if (c.open) c.send(payload); });
+ }
+
+ function broadcastGameData(payload) {
+ if (MP.isHost) MP.connections.forEach(c => { if (c.open) c.send(payload); });
+ else if (MP.hostConn && MP.hostConn.open) MP.hostConn.send(payload);
+ }
+
+ function handleMPData(senderId, data) {
+ if (data.type === 'full') { document.getElementById('join-status').textContent = 'Room is full (4/4 players max).'; return; }
+ if (data.type === 'assignColor' && !MP.isHost) MP.myColorIdx = data.colorIdx || 1;
+ if (data.type === 'hello' && MP.isHost) { if (MP.players[senderId]) MP.players[senderId].name = data.name || 'Wingman'; broadcastLobbyState(); }
+ if (data.type === 'lobby' && !MP.isHost) { MP.players = data.players; updateLobbyUI(); }
+ if (data.type === 'start' && !MP.isHost) startGame(true, data.startStageIdx || 0);
+ if (data.type === 'state') {
+ if (MP.isHost) MP.connections.forEach(c => { if (c.peer !== senderId && c.open) c.send(data); });
+ syncRemotePlayer(data.id, data);
+ }
+ if (data.type === 'shoot') {
+ spawnBullet(data.x - 1.1, data.z - 1.4, true, true);
+ spawnBullet(data.x + 1.1, data.z - 1.4, true, true);
+ if (MP.isHost) MP.connections.forEach(c => { if (c.peer !== senderId && c.open) c.send(data); });
+ }
+ }
+
+ function syncRemotePlayer(id, state) {
+ if (!MP.peer || id === MP.peer.id) return;
+ if (!MP.remoteMeshes[id]) {
+ const color = SQUAD_COLORS[state.colorIdx % SQUAD_COLORS.length] || 0x10b981;
+ const mesh = createDetailedFighterPlane(color, 0xffffff, false);
+ scene.add(mesh);
+ MP.remoteMeshes[id] = mesh;
+ }
+ const m = MP.remoteMeshes[id];
+ m.position.set(state.x, 1.5, state.z);
+ m.rotation.z = state.bank;
+ }
+
+ function removeRemotePlane(id) {
+ if (MP.remoteMeshes[id]) { scene.remove(MP.remoteMeshes[id]); delete MP.remoteMeshes[id]; }
+ }
+
+ function cleanupMP() {
+ Object.keys(MP.remoteMeshes).forEach(removeRemotePlane);
+ if (MP.peer) { MP.peer.destroy(); MP.peer = null; }
+ MP.connections = []; MP.hostConn = null; MP.players = {}; MP.isHost = false; MP.roomCode = '';
+ }
+
+ const canvas = document.getElementById('game-canvas');
+ const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: 'high-performance' });
+ renderer.toneMapping = THREE.ACESFilmicToneMapping;
+ renderer.toneMappingExposure = 1.16;
+ renderer.setSize(window.innerWidth, window.innerHeight);
+
+ const scene = new THREE.Scene();
+ scene.fog = new THREE.FogExp2(0x38bdf8, 0.011);
+
+ const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 260);
+ camera.position.set(0, 26, 24);
+ camera.lookAt(0, 0, -2);
+
+ const hemiLight = new THREE.HemisphereLight(0xbae6fd, 0x0c4a6e, 0.85);
+ scene.add(hemiLight);
+
+ const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.45);
+ dirLight.position.set(18, 38, 22);
+ dirLight.shadow.mapSize.width = 2048;
+ dirLight.shadow.mapSize.height = 2048;
+ dirLight.shadow.camera.near = 5;
+ dirLight.shadow.camera.far = 120;
+ const dCam = 32;
+ dirLight.shadow.camera.left = -dCam;
+ dirLight.shadow.camera.right = dCam;
+ dirLight.shadow.camera.top = dCam;
+ dirLight.shadow.camera.bottom = -dCam;
+ scene.add(dirLight);
+
+ const rimLight = new THREE.DirectionalLight(0x7dd3fc, 0.65);
+ rimLight.position.set(-22, 16, -24);
+ scene.add(rimLight);
+
+ const waveNormalCanvas = document.createElement('canvas');
+ waveNormalCanvas.width = 256;
+ waveNormalCanvas.height = 256;
+ const wnCtx = waveNormalCanvas.getContext('2d');
+ const wnImg = wnCtx.createImageData(256, 256);
+ for (let y = 0; y < 256; y++) {
+ for (let x = 0; x < 256; x++) {
+ const idx = (y * 256 + x) * 4;
+ const nx = Math.sin((x / 256) * Math.PI * 12) * 0.35 + Math.cos((y / 256) * Math.PI * 8) * 0.2;
+ const ny = Math.cos((y / 256) * Math.PI * 12) * 0.35 + Math.sin((x / 256) * Math.PI * 8) * 0.2;
+ wnImg.data[idx] = Math.floor((nx * 0.5 + 0.5) * 255);
+ wnImg.data[idx + 1] = Math.floor((ny * 0.5 + 0.5) * 255);
+ wnImg.data[idx + 2] = 235;
+ wnImg.data[idx + 3] = 255;
+ }
+ }
+ wnCtx.putImageData(wnImg, 0, 0);
+ const waveNormalTex = new THREE.CanvasTexture(waveNormalCanvas);
+ waveNormalTex.wrapS = THREE.RepeatWrapping;
+ waveNormalTex.wrapT = THREE.RepeatWrapping;
+ waveNormalTex.repeat.set(18, 22);
+
+ const oceanGeo = new THREE.PlaneGeometry(220, 260, 128, 128);
+ oceanGeo.rotateX(-Math.PI / 2);
+ const oceanMat = new THREE.MeshStandardMaterial({
+ color: 0x0369a1,
+ roughness: 0.26,
+ metalness: 0.48,
+ normalMap: waveNormalTex,
+ normalScale: new THREE.Vector2(0.55, 0.55),
+ flatShading: false
+ });
+ const ocean = new THREE.Mesh(oceanGeo, oceanMat);
+ ocean.position.y = -2;
+ ocean.receiveShadow = true;
+ scene.add(ocean);
+
+ const sceneryGroup = new THREE.Group();
+ const islandMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.85, metalness: 0.05 });
+ const sandMat = new THREE.MeshStandardMaterial({ color: 0xfde68a, roughness: 0.75, metalness: 0.05 });
+ const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.92, metalness: 0.0, transparent: true, opacity: 0.68 });
+
+ const islands = [];
+ for (let i = 0; i < 6; i++) {
+ const isl = new THREE.Group();
+ const base = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 6.8, 2.2, 24), sandMat);
+ base.position.y = -1.1;
+ const peak = new THREE.Mesh(new THREE.ConeGeometry(3.8, 3.2, 24), islandMat);
+ peak.position.y = 0.8;
+ isl.add(base, peak);
+ const side = (i % 2 === 0 ? -1 : 1) * (24 + Math.random() * 18);
+ isl.position.set(side, -1.2, -75 + i * 24);
+ sceneryGroup.add(isl);
+ islands.push(isl);
+ }
+
+ const clouds = [];
+ for (let i = 0; i < 14; i++) {
+ const cGroup = new THREE.Group();
+ for (let p = 0; p < 3; p++) {
+ const puff = new THREE.Mesh(new THREE.SphereGeometry(0.75 + p * 0.22, 18, 14), cloudMat);
+ puff.position.set((p - 1) * 0.72, (p % 2) * 0.14, 0);
+ cGroup.add(puff);
+ }
+ cGroup.scale.set(1.0, 0.55, 0.85);
+ cGroup.position.set((Math.random() - 0.5) * 68, 8.5 + Math.random() * 3.5, -65 + i * 11);
+ sceneryGroup.add(cGroup);
+ clouds.push(cGroup);
+ }
+ scene.add(sceneryGroup);
+
+ let playerMesh = createDetailedFighterPlane(0x2563eb, 0xf59e0b, false);
+ playerMesh.position.set(0, 1.5, 12);
+ scene.add(playerMesh);
+
+ function applyGraphicsQuality() {
+ const isHigh = appSettings.quality === 'high';
+ const dpr = isHigh ? Math.min(window.devicePixelRatio || 1, 3) : 1;
+ renderer.setPixelRatio(dpr);
+ renderer.setSize(window.innerWidth, window.innerHeight);
+ renderer.shadowMap.enabled = isHigh;
+ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+ dirLight.castShadow = isHigh;
+ }
+
+ function getBoardScale() {
+ const raw = parseFloat(appSettings.boardScale);
+ return Math.max(0.40, Math.min(1.60, Number.isFinite(raw) ? raw : 1.0));
+ }
+
+ function applyBoardObjectsScale() {
+ const s = getBoardScale();
+ if (playerMesh) playerMesh.scale.setScalar(s);
+ Object.values(MP.remoteMeshes).forEach(m => { if (m) m.scale.setScalar(s); });
+ enemies.forEach(e => { if (e && e.mesh) e.mesh.scale.setScalar(s); });
+ battleships.forEach(b => { if (b && b.mesh) b.mesh.scale.setScalar(s); });
+ bullets.forEach(bl => { if (bl && bl.mesh) bl.mesh.scale.setScalar(s); });
+ artilleryShells.forEach(a => { if (a && a.mesh) a.mesh.scale.setScalar(s); });
+ powerups.forEach(pw => { if (pw && pw.mesh) pw.mesh.scale.setScalar(s); });
+ particles.forEach(p => { if (p && p.mesh) p.mesh.scale.setScalar(Math.max(0.01, p.life * 1.8 * s)); });
+ }
+
+ const state = {
+ running: false, paused: false, isMultiplayer: false, score: 0, stageIdx: 0,
+ stageKills: 0, hp: 100, fuel: 100, weaponLevel: 1, bombs: 3, elapsedSeconds: 0,
+ lastShootTime: 0, lastSpawnTime: 0, lastBattleshipSpawnTime: 0, lastSyncTime: 0,
+ targetX: 0, targetZ: 12,
+ lightningCD: 0, concussionCD: 0, screenShake: 0, manualFireHeld: false
+ };
+
+ const bullets = [], enemies = [], battleships = [], artilleryShells = [], lightningBeams = [], particles = [], powerups = [], keys = {};
+
+ let toastTimeout = null;
+ function showPickupToast(text, color = '#facc15') {
+ const el = document.getElementById('pickup-toast');
+ el.textContent = text;
+ el.style.color = color;
+ el.style.opacity = '1';
+ el.style.transform = 'translate(-50%, -65%)';
+ clearTimeout(toastTimeout);
+ toastTimeout = setTimeout(() => {
+ el.style.opacity = '0';
+ el.style.transform = 'translate(-50%, -50%)';
+ }, 1100);
+ }
+
+ function flashScreen(colorHex, peakOpacity = 0.42) {
+ const el = document.getElementById('screen-flash');
+ el.style.backgroundColor = colorHex;
+ el.style.opacity = String(peakOpacity);
+ setTimeout(() => { el.style.opacity = '0'; }, 140);
+ }
+
+ const POWERUP_TYPES = [
+ { type: 'power', label: '⚡ WEAPON UPGRADE!', color: 0xfacc15, textCol: '#facc15' },
+ { type: 'fuel', label: '⛽ +40% FUEL', color: 0x38bdf8, textCol: '#38bdf8' },
+ { type: 'repair', label: '🔧 +30% ARMOR', color: 0x22c55e, textCol: '#4ade80' },
+ { type: 'bomb', label: '💣 +1 MEGA BOMB', color: 0xef4444, textCol: '#f87171' },
+ { type: 'medal', label: '⭐ +500 BONUS SCORE', color: 0xa855f7, textCol: '#e879f9' }
+ ];
+
+ function spawnPowerup(x, z) {
+ const roll = Math.random();
+ let def = POWERUP_TYPES[0];
+ if (roll < 0.30) def = POWERUP_TYPES[1];
+ else if (roll < 0.58) def = POWERUP_TYPES[0];
+ else if (roll < 0.78) def = POWERUP_TYPES[2];
+ else if (roll < 0.90) def = POWERUP_TYPES[4];
+ else def = POWERUP_TYPES[3];
+
+ const group = new THREE.Group();
+ const core = new THREE.Mesh(
+ new THREE.OctahedronGeometry(0.65, 1),
+ new THREE.MeshStandardMaterial({ color: def.color, emissive: def.color, emissiveIntensity: 0.45, roughness: 0.25, metalness: 0.6 })
+ );
+ const ring = new THREE.Mesh(
+ new THREE.TorusGeometry(0.9, 0.08, 12, 24),
+ new THREE.MeshBasicMaterial({ color: 0xffffff })
+ );
+ ring.rotation.x = Math.PI / 2;
+ group.add(core);
+ group.add(ring);
+ group.scale.setScalar(getBoardScale());
+ group.position.set(x, 1.5, z);
+ scene.add(group);
+ powerups.push({ mesh: group, def: def, vz: 7.5 });
+ }
+
+ function applyPowerup(def) {
+ sfx.powerup();
+ if (def.type === 'power') {
+ if (state.weaponLevel < 3) {
+ state.weaponLevel++;
+ showPickupToast('⚡ WEAPON LEVEL ' + state.weaponLevel + '!', def.textCol);
+ } else {
+ state.score += 500;
+ showPickupToast('⚡ MAX POWER +500 PTS!', def.textCol);
+ }
+ } else if (def.type === 'fuel') {
+ state.fuel = Math.min(100, state.fuel + 40);
+ showPickupToast(def.label, def.textCol);
+ } else if (def.type === 'repair') {
+ state.hp = Math.min(100, state.hp + 30);
+ showPickupToast(def.label, def.textCol);
+ } else if (def.type === 'bomb') {
+ state.bombs = Math.min(5, state.bombs + 1);
+ showPickupToast(def.label, def.textCol);
+ } else if (def.type === 'medal') {
+ state.score += 500;
+ showPickupToast(def.label, def.textCol);
+ }
+ updateHUD();
+ }
+
+ function applyStageTheme(idx) {
+ const stg = STAGES[idx] || STAGES[STAGES.length - 1];
+ oceanMat.color.setHex(stg.sea);
+ scene.background = new THREE.Color(stg.sky);
+ scene.fog.color.setHex(stg.sky);
+ document.getElementById('hud-stage').textContent = stg.num;
+ document.getElementById('banner-stage').textContent = 'STAGE ' + stg.num + ' OF ' + STAGES.length;
+ document.getElementById('banner-name').textContent = stg.name;
+ const banner = document.getElementById('stage-banner');
+ banner.style.opacity = '1';
+ setTimeout(() => { banner.style.opacity = '0'; }, 2400);
+ }
+
+ function spawnBullet(x, z, isPlayer = true, silent = false, vx = 0) {
+ const geo = new THREE.SphereGeometry(isPlayer ? 0.18 : 0.22, 10, 10);
+ geo.scale(0.7, 0.7, 2.5);
+ const mat = new THREE.MeshBasicMaterial({ color: isPlayer ? 0xfef08a : 0xef4444 });
+ const mesh = new THREE.Mesh(geo, mat);
+ mesh.scale.setScalar(getBoardScale());
+ mesh.position.set(x, 1.5, z);
+ scene.add(mesh);
+ bullets.push({ mesh: mesh, isPlayer: isPlayer, vx: vx, vz: isPlayer ? -48 : 24 });
+ if (isPlayer && !silent) sfx.shoot();
+ }
+
+ function firePlayerWeapons() {
+ const px = playerMesh.position.x;
+ const pz = playerMesh.position.z;
+ if (state.weaponLevel === 1) {
+ spawnBullet(px - 1.1, pz - 1.4, true, false, 0);
+ spawnBullet(px + 1.1, pz - 1.4, true, true, 0);
+ } else if (state.weaponLevel === 2) {
+ spawnBullet(px, pz - 1.7, true, false, 0);
+ spawnBullet(px - 1.25, pz - 1.3, true, true, -2.5);
+ spawnBullet(px + 1.25, pz - 1.3, true, true, 2.5);
+ } else {
+ spawnBullet(px - 0.55, pz - 1.7, true, false, 0);
+ spawnBullet(px + 0.55, pz - 1.7, true, true, 0);
+ spawnBullet(px - 1.45, pz - 1.2, true, true, -5.5);
+ spawnBullet(px + 1.45, pz - 1.2, true, true, 5.5);
+ }
+ if (state.isMultiplayer) broadcastGameData({ type: 'shoot', x: px, z: pz });
+ }
+
+ function triggerManualFirePulse() {
+ if (!state.running || state.paused) return;
+ const now = performance.now();
+ if (now - state.lastShootTime > 120) {
+ state.lastShootTime = now;
+ firePlayerWeapons();
+ }
+ }
+
+ function spawnBattleship() {
+ const stg = STAGES[state.stageIdx];
+ const diffMult = appSettings.difficulty === 'easy' ? 0.75 : appSettings.difficulty === 'hard' ? 1.35 : 1.0;
+ const mesh = createBattleshipMesh();
+ mesh.scale.setScalar(getBoardScale());
+ const xPos = (Math.random() - 0.5) * 20;
+ mesh.position.set(xPos, -0.3, -44);
+ scene.add(mesh);
+ battleships.push({
+ mesh: mesh,
+ hp: 10 + state.stageIdx * 3,
+ vz: (4.2 + stg.speedMult * 0.8) * diffMult,
+ vx: (Math.random() < 0.5 ? -1 : 1) * 1.4,
+ cannonTimer: 1.6,
+ points: 800
+ });
+ }
+
+ function fireBattleshipCannons(ship) {
+ sfx.cannon();
+ state.screenShake = Math.max(state.screenShake, 0.35);
+ const sx = ship.mesh.position.x;
+ const sz = ship.mesh.position.z;
+ const aimAngle = Math.atan2(playerMesh.position.x - sx, playerMesh.position.z - sz);
+
+ [-2.8, 2.5].forEach((zOff, idx) => {
+ const startX = sx + (idx === 0 ? -0.5 : 0.5);
+ const startZ = sz + zOff;
+ createExplosion(startX, startZ, 0xfdba74, 8);
+
+ const shellGeo = new THREE.SphereGeometry(0.46, 14, 14);
+ const shellMat = new THREE.MeshBasicMaterial({ color: 0xff6b00 });
+ const shellMesh = new THREE.Mesh(shellGeo, shellMat);
+ shellMesh.scale.setScalar(getBoardScale());
+ shellMesh.position.set(startX, 1.2, startZ);
+ scene.add(shellMesh);
+
+ const speed = 17 + STAGES[state.stageIdx].speedMult * 1.5;
+ const spread = (idx === 0 ? -0.14 : 0.14);
+ artilleryShells.push({
+ mesh: shellMesh,
+ vx: Math.sin(aimAngle + spread) * speed,
+ vz: Math.cos(aimAngle + spread) * speed
+ });
+ });
+ }
+
+ function spawnLightningBolt(fromX, fromZ, toX, toZ) {
+ const points = [];
+ const segments = 7;
+ for (let i = 0; i <= segments; i++) {
+ const t = i / segments;
+ const jitterX = (i === 0 || i === segments) ? 0 : (Math.random() - 0.5) * 2.2;
+ const jitterZ = (i === 0 || i === segments) ? 0 : (Math.random() - 0.5) * 1.6;
+ points.push(new THREE.Vector3(fromX + (toX - fromX) * t + jitterX, 1.6, fromZ + (toZ - fromZ) * t + jitterZ));
+ }
+ const geo = new THREE.BufferGeometry().setFromPoints(points);
+ const mat = new THREE.LineBasicMaterial({ color: 0x7dd3fc });
+ const line = new THREE.Line(geo, mat);
+ scene.add(line);
+ lightningBeams.push({ mesh: line, life: 0.24 });
+ }
+
+ function triggerLightningStrike() {
+ if (!state.running || state.paused || state.lightningCD > 0) return;
+ if (!appSettings.skills?.lightning) return;
+ state.lightningCD = 5.0;
+ sfx.lightning();
+ flashScreen('#38bdf8', 0.35);
+ showPickupToast('⚡ 雷電射擊! LIGHTNING STRIKE', '#7dd3fc');
+
+ const px = playerMesh.position.x;
+ const pz = playerMesh.position.z - 1.5;
+ const targets = [];
+ enemies.forEach(e => targets.push({ ref: e, kind: 'plane' }));
+ battleships.forEach(b => targets.push({ ref: b, kind: 'ship' }));
+ targets.sort((a, b) => a.ref.mesh.position.z - b.ref.mesh.position.z);
+
+ const hitList = targets.slice(0, 6);
+ if (hitList.length === 0) {
+ spawnLightningBolt(px, pz, px, pz - 24);
+ } else {
+ hitList.forEach(item => {
+ const tx = item.ref.mesh.position.x;
+ const tz = item.ref.mesh.position.z;
+ spawnLightningBolt(px, pz, tx, tz);
+ createExplosion(tx, tz, 0x7dd3fc, 10);
+ item.ref.hp -= 4;
+ if (item.ref.hp <= 0) {
+ createExplosion(tx, tz, 0xf97316, 16);
+ sfx.explosion();
+ state.score += item.ref.points;
+ state.stageKills++;
+ if (Math.random() < 0.55) spawnPowerup(tx, tz);
+ }
+ });
+ for (let i = enemies.length - 1; i >= 0; i--) {
+ if (enemies[i].hp <= 0) { scene.remove(enemies[i].mesh); enemies.splice(i, 1); }
+ }
+ for (let i = battleships.length - 1; i >= 0; i--) {
+ if (battleships[i].hp <= 0) { scene.remove(battleships[i].mesh); battleships.splice(i, 1); }
+ }
+ }
+ updateHUD();
+ checkStageProgression();
+ }
+
+ function triggerConcussionBlast() {
+ if (!state.running || state.paused || state.concussionCD > 0) return;
+ if (!appSettings.skills?.concussion) return;
+ state.concussionCD = 7.0;
+ state.screenShake = 0.65;
+ sfx.concussion();
+ flashScreen('#fb923c', 0.45);
+ showPickupToast('💥 震撼彈! CONCUSSION SHOCKWAVE', '#fdba74');
+
+ createExplosion(playerMesh.position.x, playerMesh.position.z - 6, 0xfdba74, 28);
+
+ for (let i = bullets.length - 1; i >= 0; i--) {
+ if (!bullets[i].isPlayer) { scene.remove(bullets[i].mesh); bullets.splice(i, 1); }
+ }
+ for (let i = artilleryShells.length - 1; i >= 0; i--) {
+ scene.remove(artilleryShells[i].mesh);
+ artilleryShells.splice(i, 1);
+ }
+
+ for (let i = enemies.length - 1; i >= 0; i--) {
+ const e = enemies[i];
+ e.hp -= 3;
+ e.mesh.position.z -= 5.5;
+ e.shootTimer = Math.max(e.shootTimer, 2.5);
+ createExplosion(e.mesh.position.x, e.mesh.position.z, 0xfbbf24, 10);
+ if (e.hp <= 0) {
+ const ex = e.mesh.position.x, ez = e.mesh.position.z;
+ createExplosion(ex, ez, 0xf97316, 15);
+ sfx.explosion();
+ state.score += e.points;
+ state.stageKills++;
+ if (Math.random() < 0.45) spawnPowerup(ex, ez);
+ scene.remove(e.mesh);
+ enemies.splice(i, 1);
+ }
+ }
+
+ for (let i = battleships.length - 1; i >= 0; i--) {
+ const bShip = battleships[i];
+ bShip.hp -= 5;
+ bShip.cannonTimer = Math.max(bShip.cannonTimer, 3.0);
+ createExplosion(bShip.mesh.position.x, bShip.mesh.position.z, 0xfdba74, 14);
+ if (bShip.hp <= 0) {
+ const bx = bShip.mesh.position.x, bz = bShip.mesh.position.z;
+ createExplosion(bx, bz, 0xf97316, 26);
+ sfx.explosion();
+ state.score += bShip.points;
+ state.stageKills += 3;
+ spawnPowerup(bx, bz);
+ scene.remove(bShip.mesh);
+ battleships.splice(i, 1);
+ }
+ }
+
+ updateHUD();
+ checkStageProgression();
+ }
+
+ function spawnEnemyMissile(x, z) {
+ const dx = playerMesh.position.x - x;
+ const dz = playerMesh.position.z - z;
+ const len = Math.hypot(dx, dz) || 1;
+ const speed = 16.5 + STAGES[state.stageIdx].speedMult * 1.4;
+ const group = new THREE.Group();
+ const bodyGeo = new THREE.CylinderGeometry(0.14, 0.14, 1.25, 16);
+ bodyGeo.rotateX(Math.PI / 2);
+ const body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({ color: 0xf97316, emissive: 0xdc2626, emissiveIntensity: 0.45, metalness: 0.6, roughness: 0.3 }));
+ const warhead = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.42, 16), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+ warhead.rotation.x = Math.PI / 2;
+ warhead.position.z = 0.8;
+ group.add(body);
+ group.add(warhead);
+ group.scale.setScalar(getBoardScale());
+ group.position.set(x, 1.5, z);
+ group.rotation.y = Math.atan2(dx, dz);
+ scene.add(group);
+ artilleryShells.push({
+ mesh: group,
+ vx: (dx / len) * speed,
+ vz: (dz / len) * speed,
+ isEnemyMissile: true,
+ damage: 20
+ });
+ }
+
+ function spawnEnemy() {
+ const stg = STAGES[state.stageIdx];
+ const diffMult = appSettings.difficulty === 'easy' ? 0.75 : appSettings.difficulty === 'hard' ? 1.35 : 1.0;
+ const isAce = Math.random() < 0.25 + state.stageIdx * 0.03;
+ const mesh = createDetailedFighterPlane(isAce ? 0xb91c1c : 0x475569, isAce ? 0xfacc15 : 0xef4444, true);
+ mesh.scale.setScalar(getBoardScale());
+ mesh.position.set((Math.random() - 0.5) * 26, 1.5, -28);
+ scene.add(mesh);
+ enemies.push({
+ mesh: mesh, hp: (isAce ? 3 : 1) + Math.floor(state.stageIdx / 4),
+ vz: (11 + Math.random() * 5) * stg.speedMult * diffMult,
+ vx: (Math.random() - 0.5) * 5, shootTimer: 0.55 + Math.random() * 0.75,
+ missileTimer: isAce ? 1.1 : 1.7 + Math.random() * 1.1,
+ points: isAce ? 300 : 100, isAce: isAce
+ });
+ }
+
+ function createExplosion(x, z, color = 0xf97316, count = 14) {
+ for (let i = 0; i < count; i++) {
+ const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.28 + Math.random() * 0.3, 1), new THREE.MeshBasicMaterial({ color: color }));
+ m.position.set(x, 1.5, z);
+ scene.add(m);
+ m.scale.setScalar(getBoardScale());
+ const angle = Math.random() * Math.PI * 2;
+ const speed = 4 + Math.random() * 14;
+ particles.push({ mesh: m, vx: Math.cos(angle) * speed, vy: 2 + Math.random() * 8, vz: Math.sin(angle) * speed, life: 0.55 });
+ }
+ }
+
+ function triggerBomb() {
+ if (!state.running || state.paused || state.bombs <= 0) return;
+ if (!appSettings.skills?.bomb) return;
+ state.bombs--;
+ state.screenShake = 0.75;
+ updateHUD();
+ sfx.bomb();
+ flashScreen('#fef08a', 0.48);
+ createExplosion(0, -4, 0xfef08a, 35);
+ for (let i = enemies.length - 1; i >= 0; i--) {
+ const e = enemies[i];
+ createExplosion(e.mesh.position.x, e.mesh.position.z, 0xf97316, 12);
+ if (Math.random() < 0.35) spawnPowerup(e.mesh.position.x, e.mesh.position.z);
+ state.score += e.points; state.stageKills++;
+ scene.remove(e.mesh); enemies.splice(i, 1);
+ }
+ for (let i = battleships.length - 1; i >= 0; i--) {
+ const bShip = battleships[i];
+ bShip.hp -= 12;
+ createExplosion(bShip.mesh.position.x, bShip.mesh.position.z, 0xf97316, 20);
+ if (bShip.hp <= 0) {
+ state.score += bShip.points; state.stageKills += 3;
+ spawnPowerup(bShip.mesh.position.x, bShip.mesh.position.z);
+ scene.remove(bShip.mesh); battleships.splice(i, 1);
+ }
+ }
+ for (let i = bullets.length - 1; i >= 0; i--) {
+ if (!bullets[i].isPlayer) { scene.remove(bullets[i].mesh); bullets.splice(i, 1); }
+ }
+ for (let i = artilleryShells.length - 1; i >= 0; i--) {
+ scene.remove(artilleryShells[i].mesh); artilleryShells.splice(i, 1);
+ }
+ checkStageProgression();
+ updateHUD();
+ }
+
+ function checkStageProgression() {
+ const stg = STAGES[state.stageIdx];
+ if (state.stageKills >= stg.targetKills) {
+ if (state.stageIdx + 1 < STAGES.length) {
+ state.stageIdx++; state.stageKills = 0;
+ state.hp = Math.min(100, state.hp + 25);
+ state.fuel = Math.min(100, state.fuel + 35);
+ sfx.stageClear(); applyStageTheme(state.stageIdx);
+ } else { endMission(true); }
+ }
+ }
+
+ function updateHUD() {
+ const stg = STAGES[state.stageIdx];
+ document.getElementById('hud-score').textContent = state.score;
+ document.getElementById('hud-stage').textContent = stg.num;
+ document.getElementById('hud-kills').textContent = state.stageKills + '/' + stg.targetKills;
+ document.getElementById('hud-weapon').textContent = state.weaponLevel;
+ document.getElementById('hp-bar').style.width = Math.max(0, state.hp) + '%';
+ document.getElementById('fuel-bar').style.width = Math.max(0, state.fuel) + '%';
+ document.getElementById('hud-bombs').textContent = '💣'.repeat(state.bombs) || 'EMPTY';
+
+ const lBtn = document.getElementById('lightning-btn');
+ const lCd = document.getElementById('lightning-cd');
+ if (state.lightningCD > 0) {
+ lBtn.disabled = true;
+ lCd.textContent = state.lightningCD.toFixed(1) + 's';
+ } else {
+ lBtn.disabled = false;
+ lCd.textContent = 'READY';
+ }
+
+ const cBtn = document.getElementById('concussion-btn');
+ const cCd = document.getElementById('concussion-cd');
+ if (state.concussionCD > 0) {
+ cBtn.disabled = true;
+ cCd.textContent = state.concussionCD.toFixed(1) + 's';
+ } else {
+ cBtn.disabled = false;
+ cCd.textContent = 'READY';
+ }
+
+ const bBtn = document.getElementById('bomb-btn');
+ bBtn.disabled = state.bombs <= 0;
+
+ const mins = String(Math.floor(state.elapsedSeconds / 60)).padStart(2, '0');
+ const secs = String(Math.floor(state.elapsedSeconds % 60)).padStart(2, '0');
+ document.getElementById('hud-timer').textContent = mins + ':' + secs;
+ }
+
+ function startGame(isMP = false, overrideStageIdx = null) {
+ sfx.init();
+ appSettings.pilotName = document.getElementById('pilot-name-input').value.trim() || 'ACE-1';
+ saveSettingsToDB();
+ applyGraphicsQuality();
+ applySkillButtonsVisibility();
+
+ const chosenStage = overrideStageIdx !== null
+ ? Math.max(0, Math.min(STAGES.length - 1, parseInt(overrideStageIdx, 10) || 0))
+ : Math.max(0, Math.min(STAGES.length - 1, parseInt(stageSelectEl.value, 10) || 0));
+
+ bullets.forEach(b => scene.remove(b.mesh)); bullets.length = 0;
+ enemies.forEach(e => scene.remove(e.mesh)); enemies.length = 0;
+ battleships.forEach(s => scene.remove(s.mesh)); battleships.length = 0;
+ artilleryShells.forEach(a => scene.remove(a.mesh)); artilleryShells.length = 0;
+ lightningBeams.forEach(l => scene.remove(l.mesh)); lightningBeams.length = 0;
+ particles.forEach(p => scene.remove(p.mesh)); particles.length = 0;
+ powerups.forEach(pw => scene.remove(pw.mesh)); powerups.length = 0;
+
+ scene.remove(playerMesh);
+ const pColor = isMP ? (SQUAD_COLORS[MP.myColorIdx % SQUAD_COLORS.length] || 0x2563eb) : 0x2563eb;
+ playerMesh = createDetailedFighterPlane(pColor, 0xf59e0b, false);
+ applyBoardObjectsScale();
+ scene.add(playerMesh);
+
+ state.running = true; state.paused = false; state.isMultiplayer = isMP;
+ state.score = 0; state.stageIdx = chosenStage; state.stageKills = 0;
+ state.hp = 100; state.fuel = 100; state.weaponLevel = 1;
+ state.bombs = 3; state.elapsedSeconds = 0; state.targetX = 0; state.targetZ = 12;
+ state.lightningCD = 0; state.concussionCD = 0; state.screenShake = 0; state.manualFireHeld = false;
+ state.lastSpawnTime = performance.now();
+ state.lastBattleshipSpawnTime = performance.now() - 3500;
+ playerMesh.position.set(0, 1.5, 12);
+
+ document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+ document.getElementById('hud').style.display = 'block';
+ document.getElementById('mp-status-badge').textContent = isMP
+ ? 'Squadron Room ' + MP.roomCode + ' (' + Object.keys(MP.players).length + '/4 Pilots)'
+ : 'Solo Pilot: ' + appSettings.pilotName;
+
+ applyStageTheme(chosenStage);
+ updateHUD();
+ }
+
+ function togglePause() {
+ if (!state.running) return;
+ state.paused = !state.paused;
+ document.getElementById('screen-pause').classList.toggle('hidden', !state.paused);
+ document.getElementById('btn-pause').textContent = state.paused ? '▶ RESUME' : '⏸ PAUSE';
+ }
+
+ async function endMission(victory = false, reason = '') {
+ state.running = false;
+ state.manualFireHeld = false;
+ document.getElementById('hud').style.display = 'none';
+ document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+ const mins = String(Math.floor(state.elapsedSeconds / 60)).padStart(2, '0');
+ const secs = String(Math.floor(state.elapsedSeconds % 60)).padStart(2, '0');
+ const reachedStage = STAGES[state.stageIdx].num;
+ document.getElementById('go-title').textContent = victory ? 'PACIFIC CAMPAIGN VICTORY!' : (reason || 'MISSION FAILED');
+ document.getElementById('go-summary').textContent = 'Pilot: ' + appSettings.pilotName + ' | Score: ' + state.score + ' | Stage: ' + reachedStage + '/' + STAGES.length + ' | Time: ' + mins + ':' + secs;
+ const isTop10 = await saveScoreToDB(appSettings.pilotName, reachedStage, state.score);
+ document.getElementById('new-record-badge').classList.toggle('hidden', !isTop10 || state.score === 0);
+ document.getElementById('screen-gameover').classList.remove('hidden');
+ }
+
+ window.addEventListener('keydown', (e) => {
+ keys[e.code] = true;
+ if (e.code === 'Space' || e.code === 'KeyB') triggerBomb();
+ if (e.code === 'KeyE') triggerLightningStrike();
+ if (e.code === 'KeyQ') triggerConcussionBlast();
+ if (e.code === 'KeyP' || e.code === 'Escape') togglePause();
+ });
+ window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+ let isDragging = false, lastPointerX = 0, lastPointerY = 0;
+ canvas.addEventListener('pointerdown', (e) => {
+ if (!state.running || state.paused) return;
+ isDragging = true; lastPointerX = e.clientX; lastPointerY = e.clientY;
+ if (!appSettings.autofire) triggerManualFirePulse();
+ });
+ window.addEventListener('pointermove', (e) => {
+ if (!isDragging || !state.running || state.paused) return;
+ const dx = (e.clientX - lastPointerX) * 0.045 * appSettings.sensitivity;
+ const dy = (e.clientY - lastPointerY) * 0.045 * appSettings.sensitivity;
+ state.targetX = Math.max(-14, Math.min(14, state.targetX + dx));
+ state.targetZ = Math.max(-8, Math.min(16, state.targetZ + dy));
+ lastPointerX = e.clientX; lastPointerY = e.clientY;
+ });
+ window.addEventListener('pointerup', () => { isDragging = false; });
+
+ let prevTime = performance.now();
+ function animate(now) {
+ requestAnimationFrame(animate);
+ const dt = Math.min(0.05, (now - prevTime) / 1000);
+ prevTime = now;
+
+ waveNormalTex.offset.y -= 0.14 * dt;
+ waveNormalTex.offset.x = Math.sin(now * 0.0005) * 0.05;
+ islands.forEach((isl) => {
+ isl.position.z += 4.5 * dt;
+ if (isl.position.z > 55) isl.position.z = -95;
+ });
+ clouds.forEach((cGroup) => {
+ cGroup.position.z += 9.5 * dt;
+ if (cGroup.position.z > 48) {
+ cGroup.position.z = -85;
+ cGroup.position.x = (Math.random() - 0.5) * 68;
+ }
+ });
+ if (appSettings.quality === 'high') {
+ const pos = oceanGeo.attributes.position;
+ for (let i = 0; i < pos.count; i++) {
+ const x = pos.getX(i), z = pos.getZ(i);
+ pos.setY(i, Math.sin(x * 0.22 + now * 0.0032) * 0.38 + Math.cos(z * 0.18 + now * 0.0042) * 0.38);
+ }
+ pos.needsUpdate = true;
+ oceanGeo.computeVertexNormals();
+ }
+ if (playerMesh.userData.propeller) playerMesh.userData.propeller.rotation.z += 28 * dt;
+
+ if (!state.running || state.paused) { renderer.render(scene, camera); return; }
+
+ state.elapsedSeconds += dt;
+ state.lightningCD = Math.max(0, state.lightningCD - dt);
+ state.concussionCD = Math.max(0, state.concussionCD - dt);
+ state.fuel -= 2.2 * dt;
+ if (state.fuel <= 0) {
+ state.fuel = 0;
+ updateHUD();
+ sfx.explosion();
+ endMission(false, 'OUT OF FUEL!');
+ return;
+ }
+ updateHUD();
+
+ const moveSpeed = 22 * appSettings.sensitivity * dt;
+ if (keys['ArrowLeft'] || keys['KeyA']) state.targetX -= moveSpeed;
+ if (keys['ArrowRight'] || keys['KeyD']) state.targetX += moveSpeed;
+ if (keys['ArrowUp'] || keys['KeyW']) state.targetZ -= moveSpeed;
+ if (keys['ArrowDown'] || keys['KeyS']) state.targetZ += moveSpeed;
+
+ state.targetX = Math.max(-14, Math.min(14, state.targetX));
+ state.targetZ = Math.max(-8, Math.min(16, state.targetZ));
+
+ const prevX = playerMesh.position.x;
+ playerMesh.position.x += (state.targetX - playerMesh.position.x) * 12 * dt;
+ playerMesh.position.z += (state.targetZ - playerMesh.position.z) * 12 * dt;
+ playerMesh.rotation.z = Math.max(-0.65, Math.min(0.65, -(playerMesh.position.x - prevX) * 2.4));
+
+ if (state.screenShake > 0) {
+ state.screenShake = Math.max(0, state.screenShake - dt * 1.8);
+ camera.position.set(
+ (Math.random() - 0.5) * state.screenShake * 2.2,
+ 26 + (Math.random() - 0.5) * state.screenShake * 1.6,
+ 24
+ );
+ } else {
+ camera.position.set(0, 26, 24);
+ }
+ camera.lookAt(0, 0, -2);
+
+ if (state.isMultiplayer && MP.peer && now - state.lastSyncTime > 55) {
+ state.lastSyncTime = now;
+ broadcastGameData({ type: 'state', id: MP.peer.id, x: playerMesh.position.x, z: playerMesh.position.z, bank: playerMesh.rotation.z, colorIdx: MP.myColorIdx });
+ }
+ if ((appSettings.autofire || keys['KeyZ'] || state.manualFireHeld) && now - state.lastShootTime > 175) {
+ state.lastShootTime = now;
+ firePlayerWeapons();
+ }
+
+ if (now - state.lastSpawnTime > STAGES[state.stageIdx].spawnRate * 1000) {
+ state.lastSpawnTime = now;
+ spawnEnemy();
+ }
+
+ const battleshipInterval = Math.max(6200, 10500 - state.stageIdx * 320);
+ if (now - state.lastBattleshipSpawnTime > battleshipInterval) {
+ state.lastBattleshipSpawnTime = now;
+ spawnBattleship();
+ }
+
+ for (let i = bullets.length - 1; i >= 0; i--) {
+ const b = bullets[i];
+ b.mesh.position.x += (b.vx || 0) * dt;
+ b.mesh.position.z += b.vz * dt;
+ if (b.mesh.position.z < -48 || b.mesh.position.z > 24 || Math.abs(b.mesh.position.x) > 24) {
+ scene.remove(b.mesh); bullets.splice(i, 1); continue;
+ }
+ if (b.isPlayer) {
+ let hitTarget = false;
+ for (let j = enemies.length - 1; j >= 0; j--) {
+ const e = enemies[j];
+ if (Math.abs(b.mesh.position.x - e.mesh.position.x) < 2.2 && Math.abs(b.mesh.position.z - e.mesh.position.z) < 2.0) {
+ scene.remove(b.mesh); bullets.splice(i, 1); e.hp--; sfx.hit();
+ hitTarget = true;
+ if (e.hp <= 0) {
+ const ex = e.mesh.position.x, ez = e.mesh.position.z;
+ createExplosion(ex, ez); sfx.explosion();
+ state.score += e.points; state.stageKills++;
+ showPickupToast('+' + e.points, '#fef08a');
+ if (e.isAce || Math.random() < 0.45) spawnPowerup(ex, ez);
+ scene.remove(e.mesh); enemies.splice(j, 1);
+ updateHUD();
+ checkStageProgression();
+ }
+ break;
+ }
+ }
+ if (!hitTarget) {
+ for (let k = battleships.length - 1; k >= 0; k--) {
+ const s = battleships[k];
+ if (Math.abs(b.mesh.position.x - s.mesh.position.x) < 2.6 && Math.abs(b.mesh.position.z - s.mesh.position.z) < 9.5) {
+ scene.remove(b.mesh); bullets.splice(i, 1); s.hp--; sfx.hit();
+ createExplosion(b.mesh.position.x, b.mesh.position.z, 0xfbbf24, 3);
+ if (s.hp <= 0) {
+ const sx = s.mesh.position.x, sz = s.mesh.position.z;
+ createExplosion(sx, sz, 0xf97316, 26); sfx.explosion();
+ state.score += s.points; state.stageKills += 3;
+ showPickupToast('⚓ BATTLESHIP SUNK +' + s.points, '#facc15');
+ spawnPowerup(sx, sz);
+ scene.remove(s.mesh); battleships.splice(k, 1);
+ updateHUD();
+ checkStageProgression();
+ }
+ break;
+ }
+ }
+ }
+ } else if (Math.abs(b.mesh.position.x - playerMesh.position.x) < 1.3 && Math.abs(b.mesh.position.z - playerMesh.position.z) < 1.4) {
+ scene.remove(b.mesh); bullets.splice(i, 1); state.hp -= 15; sfx.hit();
+ createExplosion(playerMesh.position.x, playerMesh.position.z, 0xef4444, 6);
+ updateHUD();
+ if (state.hp <= 0) { sfx.explosion(); endMission(false); return; }
+ }
+ }
+
+ for (let i = battleships.length - 1; i >= 0; i--) {
+ const s = battleships[i];
+ s.mesh.position.z += s.vz * dt;
+ s.mesh.position.x += s.vx * dt;
+ s.mesh.position.y = -0.3 + Math.sin(now * 0.004 + i) * 0.14;
+ if (s.mesh.position.x < -12 || s.mesh.position.x > 12) s.vx *= -1;
+
+ if (s.mesh.userData.muzzlePoints) {
+ const angleToPlayer = Math.atan2(playerMesh.position.x - s.mesh.position.x, playerMesh.position.z - s.mesh.position.z);
+ s.mesh.userData.muzzlePoints.forEach(mp => {
+ mp.turret.rotation.y = angleToPlayer;
+ });
+ }
+
+ s.cannonTimer -= dt;
+ if (s.cannonTimer <= 0 && s.mesh.position.z > -22 && s.mesh.position.z < 12) {
+ s.cannonTimer = Math.max(1.3, 2.5 - state.stageIdx * 0.08);
+ fireBattleshipCannons(s);
+ }
+
+ if (Math.abs(s.mesh.position.x - playerMesh.position.x) < 2.8 && Math.abs(s.mesh.position.z - playerMesh.position.z) < 9.2) {
+ createExplosion(playerMesh.position.x, playerMesh.position.z, 0xef4444, 14);
+ sfx.explosion();
+ state.hp -= 35;
+ state.targetZ = Math.min(16, s.mesh.position.z + 11);
+ updateHUD();
+ if (state.hp <= 0) { endMission(false); return; }
+ }
+
+ if (s.mesh.position.z > 28) {
+ scene.remove(s.mesh);
+ battleships.splice(i, 1);
+ }
+ }
+
+ for (let i = artilleryShells.length - 1; i >= 0; i--) {
+ const a = artilleryShells[i];
+ a.mesh.position.x += a.vx * dt;
+ a.mesh.position.z += a.vz * dt;
+ a.mesh.rotation.x += 12 * dt;
+ if (a.mesh.position.z > 26 || a.mesh.position.z < -48 || Math.abs(a.mesh.position.x) > 25) {
+ scene.remove(a.mesh);
+ artilleryShells.splice(i, 1);
+ continue;
+ }
+ if (Math.abs(a.mesh.position.x - playerMesh.position.x) < 1.8 && Math.abs(a.mesh.position.z - playerMesh.position.z) < 1.8) {
+ createExplosion(a.mesh.position.x, a.mesh.position.z, a.isEnemyMissile ? 0xef4444 : 0xff6b00, 18);
+ sfx.explosion();
+ state.screenShake = Math.max(state.screenShake, 0.5);
+ state.hp -= (a.damage || 24);
+ scene.remove(a.mesh);
+ artilleryShells.splice(i, 1);
+ updateHUD();
+ if (state.hp <= 0) { endMission(false); return; }
+ }
+ }
+
+ for (let i = enemies.length - 1; i >= 0; i--) {
+ const e = enemies[i];
+ e.mesh.position.z += e.vz * dt; e.mesh.position.x += e.vx * dt;
+ if (e.mesh.position.x < -14 || e.mesh.position.x > 14) e.vx *= -1;
+ if (e.mesh.userData.propeller) e.mesh.userData.propeller.rotation.z += 25 * dt;
+ e.shootTimer -= dt;
+ if (e.shootTimer <= 0 && e.mesh.position.z < 14) {
+ e.shootTimer = Math.max(0.55, 1.5 - state.stageIdx * 0.08);
+ spawnBullet(e.mesh.position.x, e.mesh.position.z + 2.2, false, true, (Math.random() - 0.5) * 3.5);
+ if (e.isAce) {
+ spawnBullet(e.mesh.position.x - 1.1, e.mesh.position.z + 2.0, false, true, -1.8);
+ spawnBullet(e.mesh.position.x + 1.1, e.mesh.position.z + 2.0, false, true, 1.8);
+ }
+ }
+ e.missileTimer -= dt;
+ if (e.missileTimer <= 0 && e.mesh.position.z < 12) {
+ e.missileTimer = e.isAce ? 1.6 : 2.5;
+ spawnEnemyMissile(e.mesh.position.x, e.mesh.position.z + 2.4);
+ sfx.cannon();
+ }
+ if (Math.abs(e.mesh.position.x - playerMesh.position.x) < 2.1 && Math.abs(e.mesh.position.z - playerMesh.position.z) < 2.0) {
+ createExplosion(e.mesh.position.x, e.mesh.position.z); sfx.explosion();
+ scene.remove(e.mesh); enemies.splice(i, 1); state.hp -= 25;
+ if (state.weaponLevel > 1) state.weaponLevel--;
+ updateHUD();
+ if (state.hp <= 0) { endMission(false); return; }
+ continue;
+ }
+ if (e.mesh.position.z > 24) { scene.remove(e.mesh); enemies.splice(i, 1); }
+ }
+
+ for (let i = powerups.length - 1; i >= 0; i--) {
+ const pw = powerups[i];
+ pw.mesh.position.z += pw.vz * dt;
+ pw.mesh.rotation.y += 3.2 * dt;
+ if (Math.abs(pw.mesh.position.x - playerMesh.position.x) < 2.2 && Math.abs(pw.mesh.position.z - playerMesh.position.z) < 2.2) {
+ applyPowerup(pw.def);
+ scene.remove(pw.mesh);
+ powerups.splice(i, 1);
+ continue;
+ }
+ if (pw.mesh.position.z > 24) {
+ scene.remove(pw.mesh);
+ powerups.splice(i, 1);
+ }
+ }
+
+ for (let i = lightningBeams.length - 1; i >= 0; i--) {
+ const lb = lightningBeams[i];
+ lb.life -= dt;
+ lb.mesh.material.opacity = Math.max(0, lb.life / 0.24);
+ lb.mesh.material.transparent = true;
+ if (lb.life <= 0) {
+ scene.remove(lb.mesh);
+ lb.mesh.geometry.dispose();
+ lightningBeams.splice(i, 1);
+ }
+ }
+
+ for (let i = particles.length - 1; i >= 0; i--) {
+ const p = particles[i];
+ p.life -= dt; p.mesh.position.x += p.vx * dt; p.mesh.position.y += p.vy * dt; p.mesh.position.z += p.vz * dt;
+ p.mesh.scale.setScalar(Math.max(0.01, p.life * 1.8 * getBoardScale()));
+ if (p.life <= 0) { scene.remove(p.mesh); particles.splice(i, 1); }
+ }
+ renderer.render(scene, camera);
+ }
+
+ function showScreen(id) {
+ document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+ if (id) document.getElementById(id).classList.remove('hidden');
+ }
+
+ const fireBtnEl = document.getElementById('fire-btn');
+ fireBtnEl.addEventListener('pointerdown', (e) => {
+ e.stopPropagation();
+ sfx.init();
+ state.manualFireHeld = true;
+ triggerManualFirePulse();
+ });
+ window.addEventListener('pointerup', () => { state.manualFireHeld = false; });
+ window.addEventListener('pointercancel', () => { state.manualFireHeld = false; });
+
+ document.getElementById('btn-start-solo').onclick = () => startGame(false);
+ document.getElementById('btn-pause').onclick = togglePause;
+ document.getElementById('btn-resume').onclick = togglePause;
+ document.getElementById('bomb-btn').onclick = (e) => { e.stopPropagation(); triggerBomb(); };
+ document.getElementById('lightning-btn').onclick = (e) => { e.stopPropagation(); triggerLightningStrike(); };
+ document.getElementById('concussion-btn').onclick = (e) => { e.stopPropagation(); triggerConcussionBlast(); };
+ document.getElementById('btn-quit-mission').onclick = () => {
+ state.running = false; state.paused = false; state.manualFireHeld = false; cleanupMP();
+ document.getElementById('hud').style.display = 'none'; showScreen('screen-menu');
+ };
+ document.getElementById('btn-open-mp').onclick = () => {
+ appSettings.pilotName = document.getElementById('pilot-name-input').value.trim() || 'ACE-1';
+ saveSettingsToDB(); showScreen('screen-mp');
+ };
+ document.getElementById('btn-host-room').onclick = () => {
+ document.getElementById('mp-join-panel').classList.add('hidden');
+ document.getElementById('mp-host-panel').classList.remove('hidden');
+ initHostRoom();
+ };
+ document.getElementById('btn-show-join').onclick = () => {
+ document.getElementById('mp-host-panel').classList.add('hidden');
+ document.getElementById('mp-join-panel').classList.remove('hidden');
+ };
+ document.getElementById('btn-connect-room').onclick = () => joinRoomByCode(document.getElementById('join-code-input').value.trim());
+ document.getElementById('btn-mp-launch').onclick = () => {
+ const chosenStage = parseInt(stageSelectEl.value, 10) || 0;
+ broadcastGameData({ type: 'start', startStageIdx: chosenStage });
+ startGame(true, chosenStage);
+ };
+ document.getElementById('btn-mp-back').onclick = () => { cleanupMP(); showScreen('screen-menu'); };
+
+ document.getElementById('btn-open-settings').onclick = () => { applySettingsToUI(); showScreen('screen-settings'); };
+ document.getElementById('set-volume').oninput = (e) => {
+ document.getElementById('vol-label').textContent = e.target.value;
+ sfx.init();
+ sfx.volume = parseFloat(e.target.value);
+ sfx.scaleChange();
+ };
+ document.getElementById('set-sens').oninput = (e) => { document.getElementById('sens-label').textContent = e.target.value; };
+ function handleBoardScaleSliderInput(e) {
+ const val = Math.max(0.40, Math.min(1.60, parseFloat(e.target.value) || 1.0));
+ document.getElementById('board-scale-label').textContent = val.toFixed(2);
+ document.getElementById('set-board-scale').value = val.toFixed(2);
+ appSettings.boardScale = val;
+ applyBoardObjectsScale();
+ sfx.init();
+ sfx.scaleChange();
+ }
+ document.getElementById('set-board-scale').oninput = handleBoardScaleSliderInput;
+ document.getElementById('btn-save-settings').onclick = async () => {
+ appSettings.pilotName = document.getElementById('pilot-name-input').value.trim() || 'ACE-1';
+ appSettings.difficulty = document.getElementById('set-difficulty').value;
+ appSettings.quality = document.getElementById('set-quality').value;
+ appSettings.autofire = document.getElementById('set-autofire').value === 'true';
+ appSettings.boardScale = Math.max(0.40, Math.min(1.60, parseFloat(document.getElementById('set-board-scale').value) || 1.0));
+ appSettings.skills = {
+ fire: document.getElementById('set-skill-fire').checked,
+ lightning: document.getElementById('set-skill-lightning').checked,
+ concussion: document.getElementById('set-skill-concussion').checked,
+ bomb: document.getElementById('set-skill-bomb').checked
+ };
+ appSettings.volume = parseFloat(document.getElementById('set-volume').value);
+ appSettings.sensitivity = parseFloat(document.getElementById('set-sens').value);
+ sfx.volume = appSettings.volume;
+ applyGraphicsQuality();
+ applyBoardObjectsScale();
+ applySkillButtonsVisibility();
+ await saveSettingsToDB();
+ showScreen('screen-menu');
+ };
+
+ document.getElementById('btn-export-json').onclick = async () => {
+ const scores = await getTopScoresFromDB();
+ const backupData = { game: '1941: Pacific Skies 3D', exportedAt: getFormattedDateDDMMYYYY(), settings: cleanSettingsObj(appSettings), leaderboard: scores };
+ const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+ const url = URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url; a.download = 'pacific-1941-backup-' + getFormattedDateDDMMYYYY().replace(/\//g, '-') + '.json';
+ a.click(); URL.revokeObjectURL(url);
+ };
+
+ document.getElementById('btn-import-json').onclick = () => document.getElementById('json-file-input').click();
+ document.getElementById('json-file-input').onchange = (e) => {
+ const file = e.target.files[0];
+ if (!file) return;
+ const reader = new FileReader();
+ reader.onload = async (ev) => {
+ try {
+ const parsed = JSON.parse(ev.target.result);
+ if (parsed.settings) {
+ appSettings = cleanSettingsObj(parsed.settings);
+ await saveSettingsToDB();
+ applySettingsToUI();
+ applyGraphicsQuality();
+ applyBoardObjectsScale();
+ }
+ if (Array.isArray(parsed.leaderboard)) {
+ await clearScoresDB();
+ await new Promise((resolve) => {
+ const tx = dbInstance.transaction('scores', 'readwrite');
+ const store = tx.objectStore('scores');
+ parsed.leaderboard.forEach(row => store.add({ name: row.name || 'ACE-1', stage: row.stage || 1, score: row.score || 0, date: row.date || getFormattedDateDDMMYYYY() }));
+ tx.oncomplete = () => resolve();
+ });
+ }
+ alert('JSON settings and leaderboard imported successfully!');
+ } catch (err) { alert('Invalid JSON backup file.'); }
+ };
+ reader.readAsText(file);
+ };
+
+ async function renderLeaderboard() {
+ const scores = await getTopScoresFromDB();
+ document.getElementById('leaderboard-body').innerHTML = scores.length
+ ? scores.map((s, idx) => '<tr><td>#' + (idx + 1) + '</td><td>' + s.name + '</td><td>Stage ' + s.stage + '</td><td>' + s.score + '</td><td>' + s.date + '</td></tr>').join('')
+ : '<tr><td colspan="5">No flight records yet. Launch a mission!</td></tr>';
+ }
+
+ document.getElementById('btn-open-leaderboard').onclick = async () => { await renderLeaderboard(); showScreen('screen-leaderboard'); };
+ document.getElementById('btn-go-lb').onclick = async () => { await renderLeaderboard(); showScreen('screen-leaderboard'); };
+ document.getElementById('btn-lb-back').onclick = () => showScreen('screen-menu');
+ document.getElementById('btn-go-menu').onclick = () => showScreen('screen-menu');
+ document.getElementById('btn-reset-scores').onclick = async () => { await clearScoresDB(); await renderLeaderboard(); };
+
+ window.addEventListener('resize', () => {
+ camera.aspect = window.innerWidth / window.innerHeight;
+ camera.updateProjectionMatrix();
+ applyGraphicsQuality();
+ });
+
+ loadSettingsFromDB().then(() => requestAnimationFrame(animate));
+ </script>
+</body>
+</html>
